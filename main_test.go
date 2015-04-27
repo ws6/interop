@@ -6,7 +6,7 @@ import (
 
 func TestExtractionMetrics(t *testing.T) {
 	filename := "./test_data/InterOp/ExtractionMetricsOut.bin"
-	em := ExtractionInfo{filename: filename}
+	em := ExtractionInfo{Filename: filename}
 	err := em.Parse()
 	if err != nil {
 		t.Error(err)
@@ -17,7 +17,7 @@ func TestExtractionMetrics(t *testing.T) {
 
 func TestTileMetrics(t *testing.T) {
 	filename := "./test_data/InterOp/TileMetricsOut.bin"
-	em := TileInfo{filename: filename}
+	em := TileInfo{Filename: filename}
 	err := em.Parse()
 	if err != nil {
 		t.Error(err)
@@ -30,7 +30,7 @@ func TestTileMetrics(t *testing.T) {
 
 func TestQMetrics(t *testing.T) {
 	filename := "./test_data/InterOp/QMetricsOut.bin"
-	em := QMetricsInfo{filename: filename}
+	em := QMetricsInfo{Filename: filename}
 	err := em.Parse()
 	if err != nil {
 		t.Error(err)
@@ -43,7 +43,7 @@ func TestQMetrics(t *testing.T) {
 
 func TestErrorMetrics(t *testing.T) {
 	filename := "./test_data/InterOp/ErrorMetricsOut.bin"
-	em := ErrorInfo{filename: filename}
+	em := ErrorInfo{Filename: filename}
 	err := em.Parse()
 	if err != nil {
 		t.Error(err)
@@ -54,7 +54,7 @@ func TestErrorMetrics(t *testing.T) {
 
 func TestCorrectedIntMetrics(t *testing.T) {
 	filename := "./test_data/InterOp/CorrectedIntMetricsOut.bin"
-	em := CorrectIntInfo{filename: filename}
+	em := CorrectIntInfo{Filename: filename}
 	err := em.Parse()
 	if err != nil {
 		t.Error(err)
@@ -65,7 +65,7 @@ func TestCorrectedIntMetrics(t *testing.T) {
 
 func TestImageMetrics(t *testing.T) {
 	filename := "./test_data/InterOp/ImageMetricsOut.bin"
-	em := ImageInfo{filename: filename}
+	em := ImageInfo{Filename: filename}
 	err := em.Parse()
 	if err != nil {
 		t.Error(err)
@@ -75,7 +75,7 @@ func TestImageMetrics(t *testing.T) {
 
 func TestIndexMetrics(t *testing.T) {
 	filename := "./test_data/InterOp/IndexMetricsOut.bin"
-	em := IndexInfo{filename: filename}
+	em := IndexInfo{Filename: filename}
 	err := em.Parse()
 	_ = err
 	if err != nil {
@@ -86,7 +86,7 @@ func TestIndexMetrics(t *testing.T) {
 
 func TestControlMetrics(t *testing.T) {
 	filename := "./test_data/InterOp/ControlMetricsOut.bin"
-	em := ControlInfo{filename: filename}
+	em := ControlInfo{Filename: filename}
 	err := em.Parse()
 	_ = err
 	if err != nil {

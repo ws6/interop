@@ -20,7 +20,7 @@ type IndexMetrics struct {
 }
 
 type IndexInfo struct {
-	filename string
+	Filename string
 	Version  uint8
 	SSize    uint8
 	Metrics  []*IndexMetrics
@@ -31,7 +31,7 @@ func (self *IndexInfo) Parse() error {
 	if self.err != nil {
 		return self.err
 	}
-	file, err := os.Open(self.filename)
+	file, err := os.Open(self.Filename)
 	if err != nil {
 		self.err = err
 		return self.err

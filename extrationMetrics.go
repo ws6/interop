@@ -32,7 +32,7 @@ type WinTime struct {
 }
 
 type ExtractionInfo struct {
-	filename string
+	Filename string
 	Version  uint8
 	SSize    uint8
 	Metrics  []*ExtractionMetrics
@@ -46,7 +46,6 @@ func WinToUnixTimeStamp(ts uint64) uint64 {
 	ts &= WinTimeKindMask
 	seconds := (ts / WINDOWS_TICK)
 	return (seconds - uint64(SEC_SINCE_WIN_EPOCH))
-	//	fmt.Println(uts, time.Unix(int64(uts), 0))
 }
 
 func GetTime(ts int64) time.Time {
@@ -57,7 +56,7 @@ func (self *ExtractionInfo) Parse() error {
 	if self.err != nil {
 		return self.err
 	}
-	file, err := os.Open(self.filename)
+	file, err := os.Open(self.Filename)
 	if err != nil {
 		self.err = err
 		return self.err
