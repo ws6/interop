@@ -41,6 +41,25 @@ func TestQMetrics(t *testing.T) {
 	t.Log(em.EnableQbin)
 }
 
+func TestQMetrics_version5(t *testing.T) {
+	filename := "./test_data/InterOp/QMetricsOut_version5.bin"
+	em := QMetricsInfo{Filename: filename}
+	err := em.Parse()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(em.EnableQbin, em.NumQscores)
+	for i, v := range em.Metrics {
+		t.Log(v)
+		if i == 10 {
+			break
+		}
+	}
+	if !em.EnableQbin {
+		t.Logf("unable to parse qbin-ed Qmetrics")
+	}
+}
+
 func TestErrorMetrics(t *testing.T) {
 	filename := "./test_data/InterOp/ErrorMetricsOut.bin"
 	em := ErrorInfo{Filename: filename}

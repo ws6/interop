@@ -26,9 +26,8 @@ type QMetricsInfo struct {
 	EnableQbin bool
 	NumQscores uint8
 	QbinConfig QbinConfig
-
-	Metrics []*QMetrics
-	err     error
+	Metrics    []*QMetrics
+	err        error
 }
 
 func (self *QMetricsInfo) ParseQbin(buffer *bufio.Reader) error {
@@ -97,8 +96,17 @@ func (self *QMetricsInfo) Parse() error {
 	self.SSize = header.SSize
 	self.EnableQbin = false
 	if self.Version > 4 {
-		self.EnableQbin = true
-		return self.ParseQbin(header.Buf)
+		//		self.EnableQbin = true
+		var enableQbined uint8
+		err := binary.Read(header.Buf, binary.LittleEndian, &enableQbined)
+		if err != nil {
+			self.err = err
+			return self.err
+		}
+		if enableQbined == 1 {
+			self.EnableQbin = true
+			return self.ParseQbin(header.Buf)
+		}
 	}
 	return self.ParseNonQbin(header.Buf)
 }
