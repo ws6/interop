@@ -11,7 +11,7 @@ type QMetrics struct {
 	LaneNum     uint16
 	TileNum     uint16
 	Cycle       uint16
-	NumClusters [50]uint32
+	NumClusters [50]uint32 //first 50 clusters by cycle
 }
 type QbinConfig struct {
 	LowerBound  []uint8

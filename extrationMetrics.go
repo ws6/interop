@@ -2,6 +2,7 @@ package interop
 
 import (
 	"encoding/binary"
+
 	"os"
 	"time"
 )
@@ -87,12 +88,46 @@ func (self *ExtractionInfo) Parse() error {
 	return self.err
 }
 
-//TODO interface to all Metrics
-func (self *ExtractionInfo) GetMaxCycle() uint16 {
-	maxCycle := uint16(0)
+//TODO interface to all Metrics; add General Stat Function instead of compute each time
+func (self *ExtractionInfo) GetLaneMaxCycle() map[uint16]uint16 {
+	laneMaxCycle := make(map[uint16]uint16)
 	for _, v := range self.Metrics {
-		if v.Cycle > maxCycle {
-			maxCycle = v.Cycle
+		if _, ok := laneMaxCycle[v.LaneNum]; !ok {
+			laneMaxCycle[v.LaneNum] = v.Cycle
+		}
+
+		if v.Cycle > laneMaxCycle[v.LaneNum] {
+			laneMaxCycle[v.LaneNum] = v.Cycle
+		}
+	}
+	return laneMaxCycle
+}
+
+func (self *ExtractionInfo) GetMinCycle() uint16 {
+	m := self.GetLaneMaxCycle()
+
+	minCycle := uint16(0)
+	i := 0
+	for _, cycle := range m {
+		i++
+		if i == 1 {
+			minCycle = cycle
+			continue
+		}
+		if cycle < minCycle {
+			minCycle = cycle
+		}
+	}
+
+	return minCycle
+}
+
+func (self *ExtractionInfo) GetMaxCycle() uint16 {
+	m := self.GetLaneMaxCycle()
+	maxCycle := uint16(0)
+	for _, cycle := range m {
+		if cycle > maxCycle {
+			maxCycle = cycle
 		}
 	}
 	return maxCycle
