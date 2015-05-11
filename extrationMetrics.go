@@ -92,6 +92,9 @@ func (self *ExtractionInfo) Parse() error {
 func (self *ExtractionInfo) GetLaneMaxCycle() map[uint16]uint16 {
 	laneMaxCycle := make(map[uint16]uint16)
 	for _, v := range self.Metrics {
+		if v.LaneNum == 0 {
+			continue
+		}
 		if _, ok := laneMaxCycle[v.LaneNum]; !ok {
 			laneMaxCycle[v.LaneNum] = v.Cycle
 		}

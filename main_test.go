@@ -49,12 +49,12 @@ func TestQMetrics_version5(t *testing.T) {
 		t.Error(err)
 	}
 	t.Log(em.EnableQbin, em.NumQscores)
-	for i, v := range em.Metrics {
-		t.Log(v)
-		if i >= 10 {
-			break
-		}
-	}
+	//	for i, v := range em.Metrics {
+	//		t.Log(v)
+	//		if i >= 10 {
+	//			break
+	//		}
+	//	}
 	if !em.EnableQbin {
 		t.Logf("unable to parse qbin-ed Qmetrics")
 	}
