@@ -7,28 +7,16 @@ import (
 	"os"
 )
 
-//version 6 with qbin on
+//common struct Lane,Tile and Cycle
 type LTC struct {
 	LaneNum uint16
 	TileNum uint16
 	Cycle   uint16
 }
 
-//type QMetrics6 struct {
-//	LTC
-//	//	LaneNum uint16
-//	//	TileNum uint16
-//	//	Cycle   uint16
-//	//	NumClusters     [50]uint32 //first 50 clusters by cycle score Q1 through Q50 (uint32
-//	NumClustersQbin []uint32
-//}
 type QMetrics struct {
 	LTC
-	//	LaneNum     uint16
-	//	TileNum     uint16
-	//	Cycle       uint16
 	NumClusters [50]uint32 //first 50 clusters by cycle score Q1 through Q50 (uint32
-	//	NumClustersQbin []uint32
 }
 type QbinConfig struct {
 	LowerBound  []uint8
@@ -49,6 +37,9 @@ type QMetricsInfo struct {
 
 func (self *QMetricsInfo) Error() string {
 	if self.err != nil {
+		if self.err.Error() == "EOF" {
+			return ""
+		}
 		return self.err.Error()
 	}
 	return ""
@@ -137,13 +128,14 @@ func (self *QMetricsInfo) ParseVersion6(buffer *bufio.Reader) error {
 	if self.err = self.ParseQbinConfig(buffer); self.err != nil {
 		return self.err
 	}
-	if self.err = self.ValidateQbinConfig(); self.err != nil {
-		return self.err
+	if self.EnableQbin {
+		if self.err = self.ValidateQbinConfig(); self.err != nil {
+			return self.err
+		}
 	}
-	//	binSz := int(self.NumQscores)
+
 	ok := true
 	n := uint32(0)
-	//	ltc := new(LTC)
 	for {
 		if self.err != nil {
 			if self.err.Error() == "EOF" {
@@ -156,9 +148,6 @@ func (self *QMetricsInfo) ParseVersion6(buffer *bufio.Reader) error {
 			if self.err = binary.Read(buffer, binary.LittleEndian, &m.LTC); self.err != nil {
 				continue
 			}
-			//			m.LaneNum = ltc.LaneNum
-			//			m.TileNum = ltc.TileNum
-			//			m.Cycle = ltc.Cycle
 			ok = true
 			for i := uint8(0); i < self.NumQscores; i++ {
 				n = 0
@@ -212,7 +201,6 @@ func (self *QMetricsInfo) Parse() error {
 	}
 
 	if self.Version == 5 {
-		//		self.EnableQbin = true
 		var enableQbined uint8
 		err := binary.Read(header.Buf, binary.LittleEndian, &enableQbined)
 		if err != nil {
@@ -226,15 +214,14 @@ func (self *QMetricsInfo) Parse() error {
 	}
 	if self.Version == 6 {
 		var enableQbined uint8
-		err := binary.Read(header.Buf, binary.LittleEndian, &enableQbined)
-		if err != nil {
-			self.err = err
+		if self.err = binary.Read(header.Buf, binary.LittleEndian, &enableQbined); self.err != nil {
 			return self.err
 		}
+
 		if enableQbined == 1 {
 			self.EnableQbin = true
 			return self.ParseVersion6(header.Buf)
 		}
 	}
-	return fmt.Errorf("version %d is not supported", self.Version)
+	return self.ParseNonQbin(header.Buf)
 }
