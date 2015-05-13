@@ -14,17 +14,19 @@ type LTC struct {
 	Cycle   uint16
 }
 
-type QMetrics6 struct {
-	LaneNum uint16
-	TileNum uint16
-	Cycle   uint16
-	//	NumClusters     [50]uint32 //first 50 clusters by cycle score Q1 through Q50 (uint32
-	NumClustersQbin []uint32
-}
+//type QMetrics6 struct {
+//	LTC
+//	//	LaneNum uint16
+//	//	TileNum uint16
+//	//	Cycle   uint16
+//	//	NumClusters     [50]uint32 //first 50 clusters by cycle score Q1 through Q50 (uint32
+//	NumClustersQbin []uint32
+//}
 type QMetrics struct {
-	LaneNum     uint16
-	TileNum     uint16
-	Cycle       uint16
+	LTC
+	//	LaneNum     uint16
+	//	TileNum     uint16
+	//	Cycle       uint16
 	NumClusters [50]uint32 //first 50 clusters by cycle score Q1 through Q50 (uint32
 	//	NumClustersQbin []uint32
 }
@@ -131,19 +133,6 @@ func (self *QMetricsInfo) ValidateQbinConfig() error {
 	return nil
 }
 
-//TODO non-qbin to qbin, interesting
-func (self *QMetricsInfo) QbinToNonBin(m *QMetrics, m6 *QMetrics6) {
-	//	self.QbinConfig.ReMapScores
-	//sanity check
-	m.LaneNum = m6.LaneNum
-	m.TileNum = m6.TileNum
-	m.Cycle = m6.Cycle
-	//after bound checking
-	for i, v := range m6.NumClustersQbin {
-		m.NumClusters[self.QbinConfig.ReMapScores[i]] = v
-	}
-}
-
 func (self *QMetricsInfo) ParseVersion6(buffer *bufio.Reader) error {
 	if self.err = self.ParseQbinConfig(buffer); self.err != nil {
 		return self.err
@@ -154,7 +143,7 @@ func (self *QMetricsInfo) ParseVersion6(buffer *bufio.Reader) error {
 	//	binSz := int(self.NumQscores)
 	ok := true
 	n := uint32(0)
-	ltc := new(LTC)
+	//	ltc := new(LTC)
 	for {
 		if self.err != nil {
 			if self.err.Error() == "EOF" {
@@ -164,12 +153,12 @@ func (self *QMetricsInfo) ParseVersion6(buffer *bufio.Reader) error {
 		}
 		m := new(QMetrics)
 		if self.EnableQbin {
-			if self.err = binary.Read(buffer, binary.LittleEndian, ltc); self.err != nil {
+			if self.err = binary.Read(buffer, binary.LittleEndian, &m.LTC); self.err != nil {
 				continue
 			}
-			m.LaneNum = ltc.LaneNum
-			m.TileNum = ltc.TileNum
-			m.Cycle = ltc.Cycle
+			//			m.LaneNum = ltc.LaneNum
+			//			m.TileNum = ltc.TileNum
+			//			m.Cycle = ltc.Cycle
 			ok = true
 			for i := uint8(0); i < self.NumQscores; i++ {
 				n = 0
