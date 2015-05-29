@@ -62,13 +62,16 @@ func TestQMetrics_version5(t *testing.T) {
 }
 
 func TestQMetrics_version6(t *testing.T) {
-	filename := "./test_data/InterOp/QMetricsOut_version6.bin"
+	//	filename := "./test_data/InterOp/QMetricsOut_version6.bin"
+	//	filename := "./test_data/QMetricsOut.bin"
+	filename := `\\sd-isilon\trex\Opus\150512_ST-E00107_0505_BH01V5CFXX\InterOp\QMetricsOut.bin`
 	em := QMetricsInfo{Filename: filename}
 	err := em.Parse()
 	if err != nil {
 		t.Error(err)
 	}
-	t.Log(em.EnableQbin, em.NumQscores, em.QbinConfig.ReMapScores)
+
+	t.Log(em.Version, em.EnableQbin, em.NumQscores, em.QbinConfig.ReMapScores)
 	if !em.EnableQbin {
 		t.Logf("unable to parse qbin-ed Qmetrics")
 	}

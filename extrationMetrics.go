@@ -145,3 +145,12 @@ func (self *ExtractionInfo) GetLatestCIFTime() int64 {
 	}
 	return int64(latest)
 }
+func (self *ExtractionInfo) GetFirstCIFTime() int64 {
+	first := uint64(time.Now().Unix())
+	for _, v := range self.Metrics {
+		if v.CIF_TIME < first {
+			first = v.CIF_TIME
+		}
+	}
+	return int64(first)
+}
