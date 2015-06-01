@@ -154,3 +154,24 @@ func (self *ExtractionInfo) GetFirstCIFTime() int64 {
 	}
 	return int64(first)
 }
+
+func (self *ExtractionInfo) FilterByTileMap(tm *[]LaneTile) *ExtractionInfo {
+	ret := *self
+	if tm == nil {
+		//TODO return a real copy
+		return &ret
+	}
+	tmap := MakeLaneTileMap(tm)
+	ret.Metrics = make([]*ExtractionMetrics, 0)
+	for _, t := range self.Metrics {
+		if _, ok := tmap[t.LaneNum]; !ok {
+			continue
+		}
+		if use, ok := tmap[t.LaneNum][t.TileNum]; !ok || !use {
+			continue
+		}
+		//!!! only use ref
+		ret.Metrics = append(ret.Metrics, t)
+	}
+	return nil
+}

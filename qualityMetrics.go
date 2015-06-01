@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/binary"
 	"fmt"
+	"math"
 	"os"
 )
 
@@ -224,4 +225,156 @@ func (self *QMetricsInfo) Parse() error {
 		}
 	}
 	return self.ParseNonQbin(header.Buf)
+}
+
+func (self *QMetricsInfo) FilterByTileMap(tm *[]LaneTile) *QMetricsInfo {
+	ret := *self
+	if tm == nil {
+		//TODO return a real copy
+		return &ret
+	}
+	tmap := MakeLaneTileMap(tm)
+	ret.Metrics = make([]*QMetrics, 0)
+	for _, t := range self.Metrics {
+		if _, ok := tmap[t.LaneNum]; !ok {
+			continue
+		}
+		if use, ok := tmap[t.LaneNum][t.TileNum]; !ok || !use {
+			continue
+		}
+		//!!! only use ref
+		ret.Metrics = append(ret.Metrics, t)
+	}
+	return nil
+}
+
+func (self *QMetricsInfo) GetLaneMaxCycle() map[uint16]uint16 {
+	laneMaxCycle := make(map[uint16]uint16)
+	for _, v := range self.Metrics {
+		if v.LaneNum == 0 {
+			continue
+		}
+		if _, ok := laneMaxCycle[v.LaneNum]; !ok {
+			laneMaxCycle[v.LaneNum] = v.Cycle
+		}
+
+		if v.Cycle > laneMaxCycle[v.LaneNum] {
+			laneMaxCycle[v.LaneNum] = v.Cycle
+		}
+	}
+	return laneMaxCycle
+}
+
+//GetLaneSum return either filtered or unfiltered by cycleMap
+func (self *QMetricsInfo) GetLaneSum(cycleMap *map[uint16]bool) map[uint16][]uint64 {
+	ret := make(map[uint16][]uint64)
+	for _, v := range self.Metrics {
+		if cycleMap != nil {
+			cm := *cycleMap
+			if used, ok := cm[v.Cycle]; !ok || !used {
+				continue
+			}
+		}
+		if _, ok := ret[v.LaneNum]; !ok {
+			ret[v.LaneNum] = make([]uint64, len(v.NumClusters))
+		}
+		//		ref := ret[v.LaneNum]
+		for qval, qscore := range v.NumClusters {
+
+			ret[v.LaneNum][qval] += uint64(qscore)
+		}
+	}
+	return ret
+}
+
+func (self *QMetricsInfo) QscoreInCycle(qvalCutoff int, laneNum uint16, cycleMap map[uint16]bool) uint64 {
+	count := uint64(0)
+	for _, v := range self.Metrics {
+		if v.LaneNum != laneNum {
+			continue
+		}
+		if used, ok := cycleMap[v.Cycle]; !ok || !used {
+			continue
+		}
+		for qval, qscore := range v.NumClusters {
+			if (qval) >= qvalCutoff {
+				count += uint64(qscore)
+			}
+		}
+	}
+
+	return count
+}
+
+func QscoreSumByLane(laneSum map[uint16][]uint64, laneNum uint16, qvalCutoff int) uint64 {
+	count := uint64(0)
+	if _, ok := laneSum[laneNum]; !ok {
+		return count
+	}
+	for qval, qscore := range laneSum[laneNum] {
+
+		if (qval + 1) >= qvalCutoff {
+			count += qscore
+		}
+	}
+	return count
+}
+
+func QvalToErrorRate(qval int) float64 {
+	return math.Pow(float64(10), (float64(-1.0)*float64(qval))/float64(10))
+}
+
+//ExpectErrorRateStat return qval to error rate mean/stdev
+func ExpectErrorRateStat(laneSum map[uint16][]uint64, laneNum uint16) (mean float64, stdev float64) {
+	if _, ok := laneSum[laneNum]; !ok {
+		return
+	}
+	count := uint64(0)
+	errorSum := float64(0)
+	for qval, qscore := range laneSum[laneNum] {
+		errorRate := QvalToErrorRate(qval)
+		errorSum += float64(qscore) * errorRate
+		count += qscore
+	}
+	mean = float64(0)
+	if count != 0 {
+		mean = errorSum / float64(count)
+	}
+	stdevSum := float64(0)
+	for qval, qscore := range laneSum[laneNum] {
+		errorRate := QvalToErrorRate(qval)
+		stdevSum += float64(qscore) * (math.Pow((mean - errorRate), float64(2)))
+	}
+
+	if count != 0 {
+		stdev = math.Sqrt(stdevSum / float64(count))
+	}
+	return
+}
+
+//QscoreLaneStat return mean and stdev
+func QscoreLaneStat(laneSum map[uint16][]uint64, laneNum uint16) (mean float64, stdev float64) {
+	if _, ok := laneSum[laneNum]; !ok {
+		return
+	}
+	count := uint64(0)
+	qscoreTotal := float64(0)
+	for qval, qscore := range laneSum[laneNum] {
+
+		qscoreTotal += float64(qscore) * float64(qval)
+		count += uint64(qscore)
+	}
+	mean = float64(0)
+	if count != 0 {
+		mean = qscoreTotal / float64(count)
+	}
+	stdevSum := float64(0)
+	for qval, qscore := range laneSum[laneNum] {
+		stdevSum += float64(qscore) * (math.Pow((mean - float64(qval)), float64(2)))
+	}
+
+	if count != 0 {
+		stdev = math.Sqrt(stdevSum / float64(count))
+	}
+	return
 }

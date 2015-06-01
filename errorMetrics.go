@@ -59,3 +59,49 @@ func (self *ErrorInfo) Parse() error {
 	}
 	return self.err
 }
+
+func (self *ErrorInfo) FilterByTileMap(tm *[]LaneTile) *ErrorInfo {
+	ret := *self
+	if tm == nil {
+		//TODO return a real copy
+		return &ret
+	}
+	tmap := MakeLaneTileMap(tm)
+	ret.Metrics = make([]*ErrorMetrics, 0)
+	for _, t := range self.Metrics {
+		if _, ok := tmap[t.LaneNum]; !ok {
+			continue
+		}
+		if use, ok := tmap[t.LaneNum][t.TileNum]; !ok || !use {
+			continue
+		}
+		//!!! only use ref
+		ret.Metrics = append(ret.Metrics, t)
+	}
+	return nil
+}
+
+//GetAvgErrorRateByLane if cycleMap is nil, not to use
+func (self *ErrorInfo) GetAvgErrorRateByLane(laneNum uint16, cycleMap *map[uint16]bool) float64 {
+	sum := float64(0)
+	cnt := 0
+	for _, m := range self.Metrics {
+		if m.LaneNum != laneNum {
+			continue
+		}
+		if cycleMap != nil {
+			dref := *cycleMap
+			if _, ok := dref[m.Cycle]; !ok {
+				continue
+			}
+		}
+
+		cnt++
+		sum += float64(m.ErrorRate)
+	}
+	if cnt == 0 {
+		return float64(0.0)
+	}
+	return sum / float64(cnt)
+
+}
