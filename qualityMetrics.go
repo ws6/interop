@@ -228,11 +228,15 @@ func (self *QMetricsInfo) Parse() error {
 }
 
 func (self *QMetricsInfo) FilterByTileMap(tm *[]LaneTile) *QMetricsInfo {
-	ret := *self
-	if tm == nil {
-		//TODO return a real copy
-		return &ret
+	ret := &QMetricsInfo{
+		Filename:   self.Filename,
+		Version:    self.Version,
+		SSize:      self.SSize,
+		EnableQbin: self.EnableQbin,
+		NumQscores: self.NumQscores,
+		QbinConfig: self.QbinConfig,
 	}
+
 	tmap := MakeLaneTileMap(tm)
 	ret.Metrics = make([]*QMetrics, 0)
 	for _, t := range self.Metrics {
@@ -245,7 +249,7 @@ func (self *QMetricsInfo) FilterByTileMap(tm *[]LaneTile) *QMetricsInfo {
 		//!!! only use ref
 		ret.Metrics = append(ret.Metrics, t)
 	}
-	return nil
+	return ret
 }
 
 func (self *QMetricsInfo) GetLaneMaxCycle() map[uint16]uint16 {

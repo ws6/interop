@@ -61,11 +61,12 @@ func (self *ErrorInfo) Parse() error {
 }
 
 func (self *ErrorInfo) FilterByTileMap(tm *[]LaneTile) *ErrorInfo {
-	ret := *self
-	if tm == nil {
-		//TODO return a real copy
-		return &ret
+	ret := &ErrorInfo{
+		Filename: self.Filename,
+		Version:  self.Version,
+		SSize:    self.SSize,
 	}
+
 	tmap := MakeLaneTileMap(tm)
 	ret.Metrics = make([]*ErrorMetrics, 0)
 	for _, t := range self.Metrics {

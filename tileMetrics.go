@@ -129,10 +129,10 @@ func (self *TileInfo) Parse() error {
 }
 
 func (self *TileInfo) FilterByTileMap(tm *[]LaneTile) *TileInfo {
-	ret := *self
-	if tm == nil {
-		//TODO return a real copy
-		return &ret
+	ret := &TileInfo{
+		Filename: self.Filename,
+		Version:  self.Version,
+		SSize:    self.SSize,
 	}
 	tmap := MakeLaneTileMap(tm)
 	ret.Metrics = make([]*TileMetrics, 0)
@@ -146,7 +146,7 @@ func (self *TileInfo) FilterByTileMap(tm *[]LaneTile) *TileInfo {
 		//!!! only use ref
 		ret.Metrics = append(ret.Metrics, t)
 	}
-	return nil
+	return ret
 }
 
 func (self *TileInfo) GetLanesSorted() []uint16 {
