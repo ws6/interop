@@ -202,6 +202,41 @@ func (self *TileInfo) CodeAvgByLane(laneNum, Code uint16) float64 {
 	return sum / float64(count)
 }
 
+//produce mean and sd
+func (self *TileInfo) CodeStatByLane(laneNum, Code uint16) (mean float64, stdev float64) {
+	sum, devsum := float64(0.0), float64(0.0)
+	count := 0
+	for _, cv := range self.Metrics {
+		if cv.LaneNum != laneNum {
+			continue
+		}
+		if cv.MetricCode != Code {
+			continue
+		}
+		count++
+		sum += float64(cv.MetricValue)
+	}
+	mean = sum / float64(count)
+	if count == 0 {
+		return
+	}
+
+	for _, cv := range self.Metrics {
+		if cv.LaneNum != laneNum {
+			continue
+		}
+		if cv.MetricCode != Code {
+			continue
+		}
+		v := float64(cv.MetricValue)
+		b := mean - v
+		devsum += (b * b)
+	}
+	stdev = math.Sqrt(devsum / float64(count))
+
+	return
+}
+
 func GetTileStat(a *[]float64) (mean float64, stdev float64) {
 	sum, devsum := float64(0.0), float64(0.0)
 	arr := *a

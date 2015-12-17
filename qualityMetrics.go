@@ -269,6 +269,37 @@ func (self *QMetricsInfo) GetLaneMaxCycle() map[uint16]uint16 {
 	return laneMaxCycle
 }
 
+//func (self *QMetricsInfo) GetStatByCycle(inlanes []uint16, inCycles []uint16) (mean float64, stdev float64) {
+
+//	count := uint64(0)
+//	qscoreTotal := float64(0)
+
+//	filterLane := func() bool {
+
+//		return false
+//	}
+
+//	for _, m := range self.Metrics {
+
+//		qscoreTotal += float64( ) * float64(qval)
+//		count += uint64(qscore)
+//	}
+//	mean = float64(0)
+//	if count != 0 {
+//		mean = qscoreTotal / float64(count)
+//	}
+//	stdevSum := float64(0)
+//	//	for qval, qscore := range laneSum[laneNum] {
+//	//		//TODO add filter
+//	//		stdevSum += float64(qscore) * (math.Pow((mean - float64(qval)), float64(2)))
+//	//	}
+
+//	if count != 0 {
+//		stdev = math.Sqrt(stdevSum / float64(count))
+//	}
+//	return
+//}
+
 //GetLaneSum return either filtered or unfiltered by cycleMap
 func (self *QMetricsInfo) GetLaneSum(cycleMap *map[uint16]bool) map[uint16][]uint64 {
 	ret := make(map[uint16][]uint64)

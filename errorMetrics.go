@@ -2,6 +2,7 @@ package interop
 
 import (
 	"encoding/binary"
+	"math"
 	"os"
 )
 
@@ -104,5 +105,48 @@ func (self *ErrorInfo) GetAvgErrorRateByLane(laneNum uint16, cycleMap *map[uint1
 		return float64(0.0)
 	}
 	return sum / float64(cnt)
+
+}
+
+func (self *ErrorInfo) GetStatErrorRateByLane(laneNum uint16, cycleMap *map[uint16]bool) (mean float64, stdv float64) {
+	sum, devsum := float64(0), float64(0)
+	cnt := 0
+	for _, m := range self.Metrics {
+		if m.LaneNum != laneNum {
+			continue
+		}
+		if cycleMap != nil {
+			dref := *cycleMap
+			if _, ok := dref[m.Cycle]; !ok {
+				continue
+			}
+		}
+
+		cnt++
+		sum += float64(m.ErrorRate)
+	}
+	if cnt == 0 {
+		return
+	}
+	mean = sum / float64(cnt)
+
+	for _, m := range self.Metrics {
+		if m.LaneNum != laneNum {
+			continue
+		}
+		if cycleMap != nil {
+			dref := *cycleMap
+			if _, ok := dref[m.Cycle]; !ok {
+				continue
+			}
+		}
+
+		v := float64(m.ErrorRate)
+		b := mean - v
+		devsum += (b * b)
+	}
+	stdv = math.Sqrt(devsum / float64(cnt))
+
+	return
 
 }
