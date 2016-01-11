@@ -5,8 +5,10 @@ import (
 )
 
 func TestSubTileStat(t *testing.T) {
-	pfGridFilename := `C:\Users\jliu1\GolangProjects\src\github.com\ws6\raptor\test_data\data\flowcells\160106_HWI-ST347_1760_BHKFGGCCXX\InterOp\PFGridMetricsOut.bin`
-	fwhmFilename := `C:\Users\jliu1\GolangProjects\src\github.com\ws6\raptor\test_data\data\flowcells\160106_HWI-ST347_1760_BHKFGGCCXX\InterOp\FWHMGridMetricsOut.bin`
+	//	pfGridFilename := `C:\Users\jliu1\GolangProjects\src\github.com\ws6\raptor\test_data\data\flowcells\160106_HWI-ST347_1760_BHKFGGCCXX\InterOp\PFGridMetricsOut.bin`
+	pfGridFilename := `\\ussd-prd-isi04\Voyager\160108_HS3000-1132_2191_Bh2gthcfxx\InterOp\PFGridMetricsOut.bin`
+	//	fwhmFilename := `C:\Users\jliu1\GolangProjects\src\github.com\ws6\raptor\test_data\data\flowcells\160106_HWI-ST347_1760_BHKFGGCCXX\InterOp\FWHMGridMetricsOut.bin`
+	fwhmFilename := `\\ussd-prd-isi04\Voyager\160108_HS3000-1132_2191_Bh2gthcfxx\InterOp\FWHMGridMetricsOut.bin`
 
 	subtileInfo := new(SubtileInfo)
 	pf := PFMetricsInfo{Filename: pfGridFilename}

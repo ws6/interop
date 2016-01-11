@@ -83,8 +83,8 @@ func (self *FwhmMetricsInfo) Parse() error {
 			}
 			return err
 		}
-		//		for j := uint8(0); j < self.NumChannels; j++ {
-		for j := uint8(0); j < uint8(4); j++ { //always four channels
+		for j := uint8(0); j < self.NumChannels; j++ {
+			//		for j := uint8(0); j < uint8(4); j++ { //always four channels
 			fwhmChannel := new(FwhmChannel)
 			fwhmChannel.Channel = j
 			for i := 0; i < numSubTiles; i++ {

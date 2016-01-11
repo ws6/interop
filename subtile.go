@@ -244,8 +244,9 @@ func (self *SubtileInfo) GetFWHMSubTileMetrics(getter convertFwhm, postfn postPr
 
 func (self *SubtileInfo) GetFwhmMetricsByChannel(channelIndex uint16) error {
 	//channelIndex 0, 1, 3,4 ->A G C T
-	if channelIndex > 3 {
-		return fmt.Errorf("channelIndex(%d) is greater than 3", channelIndex)
+	if channelIndex >= uint16(self.FwhmInfo.NumChannels) {
+		return nil
+		//		return fmt.Errorf("channelIndex(%d) is greater than 3", channelIndex)
 	}
 	getter := func(m *FwhmSubTileMetrics, Ny, x, y uint16) float64 {
 		metrics := m.Channels[channelIndex]
@@ -253,10 +254,10 @@ func (self *SubtileInfo) GetFwhmMetricsByChannel(channelIndex uint16) error {
 	}
 
 	postfn := func(self *SubtileInfo, binMap *BinStatMap) error {
-		//!!! make once only
-		if len(self.FWHM_Channels) == 0 {
-			self.FWHM_Channels = make([]*BinStatMap, 4)
-		}
+		//		//!!! make once only
+		//		if len(self.FWHM_Channels) == 0 {
+		//			self.FWHM_Channels = make([]*BinStatMap, 4)
+		//		}
 		self.FWHM_Channels[channelIndex] = binMap
 		return nil
 	}
@@ -268,7 +269,7 @@ func (self *SubtileInfo) GetFwhmMetricsByAllChannel() error {
 	getter := func(m *FwhmSubTileMetrics, Ny, x, y uint16) float64 {
 
 		total := float64(0)
-		for i := 0; i < 4; i++ {
+		for i := 0; i < int(self.FwhmInfo.NumChannels); i++ {
 			metrics := m.Channels[i]
 
 			total += float64(metrics.Fwhm[Ny*x+y])
@@ -308,7 +309,7 @@ type builder func() error
 func (self *SubtileInfo) MakeBoxStat() error {
 	//make four channels before started
 	if len(self.FWHM_Channels) == 0 {
-		self.FWHM_Channels = make([]*BinStatMap, 4)
+		self.FWHM_Channels = make([]*BinStatMap, self.FwhmInfo.NumChannels)
 	}
 
 	builders := []builder{
