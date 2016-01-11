@@ -24,18 +24,24 @@ func TestSubTileStat(t *testing.T) {
 	if err := subtileInfo.MakeBoxStat(); err != nil {
 		t.Fatal(err.Error())
 	}
-	t.Logf("%+v\n", subtileInfo.SubtileLaneStat.ClusterPF)
-	t.Logf("%+v\n", subtileInfo.SubtileLaneStat.ClusterRaw)
-	t.Logf("%+v\n", subtileInfo.SubtileLaneStat.DensityPF)
-	t.Logf("%+v\n", subtileInfo.SubtileLaneStat.DensityRaw)
-	t.Logf("%+v\n", subtileInfo.SubtileLaneStat.DensityPF)
+	//	t.Logf("%+v\n", subtileInfo.SubtileLaneStat.ClusterPF)
+	//	t.Logf("%+v\n", subtileInfo.SubtileLaneStat.ClusterRaw)
+	//	t.Logf("%+v\n", subtileInfo.SubtileLaneStat.DensityPF)
+	//	t.Logf("%+v\n", subtileInfo.SubtileLaneStat.DensityRaw)
+	//	t.Logf("%+v\n", subtileInfo.SubtileLaneStat.DensityPF)
+	for k, v := range subtileInfo.SubtileLaneStat.PF.XBinStat {
+		t.Logf("%d  \n", k)
+		for bin, stat := range v {
+			t.Logf("%d %+v\n", bin, stat)
+		}
+	}
 	t.Logf("%+v\n", subtileInfo.SubtileLaneStat.PF.XBinStat)
-	t.Logf("%+v\n", subtileInfo.SubtileLaneStat.PF.YBinStat)
-	t.Logf("%+v\n", subtileInfo.SubtileLaneStat.FWHMAll_Channel_All)
-	t.Logf("%+v\n", subtileInfo.SubtileLaneStat.FWHM_Channels[0])
-	t.Logf("%+v\n", subtileInfo.SubtileLaneStat.FWHM_Channels[1])
-	t.Logf("%+v\n", subtileInfo.SubtileLaneStat.FWHM_Channels[2])
-	t.Logf("%+v\n", subtileInfo.SubtileLaneStat.FWHM_Channels[3])
+	//	t.Logf("%+v\n", subtileInfo.SubtileLaneStat.PF.YBinStat)
+	//	t.Logf("%+v\n", subtileInfo.SubtileLaneStat.FWHMAll_Channel_All)
+	//	t.Logf("%+v\n", subtileInfo.SubtileLaneStat.FWHM_Channels[0])
+	//	t.Logf("%+v\n", subtileInfo.SubtileLaneStat.FWHM_Channels[1])
+	//	t.Logf("%+v\n", subtileInfo.SubtileLaneStat.FWHM_Channels[2])
+	//	t.Logf("%+v\n", subtileInfo.SubtileLaneStat.FWHM_Channels[3])
 
 }
 

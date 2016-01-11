@@ -16,9 +16,9 @@ type BoxWhiskerStat struct {
 	Whisker_top  float64   `json:"whisker_top"`
 	Whisker_low  float64   `json:"whisker_low"`
 	Whisker_high float64   `json:"whisker_high"`
-	Outliers     []float64 `json:"outliers"`
-	Mean         float64   `json:"-"`
-	Stdev        float64   //standard derivation
+	Outliers     []float64 `json:"-"`
+	Mean         float64
+	Stdev        float64 //standard derivation
 	IQR          float64
 }
 

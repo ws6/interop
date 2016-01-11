@@ -2,6 +2,7 @@ package interop
 
 import (
 	"fmt"
+	"sort"
 )
 
 var (
@@ -20,7 +21,8 @@ var (
 )
 
 type BinStat struct {
-	numbers []float64 `json:"-"`
+	numbers  []float64 `json:"-"`
+	BinValue uint16    //Nx, Ny
 	*BoxWhiskerStat
 }
 
@@ -85,10 +87,12 @@ func (self *SubtileInfo) GetPFSubTileMetrics(getter convert, postfn postProcess)
 		for x := uint16(0); x < self.PFInfo.NumX; x++ {
 			if _, ok := XBinStat[m.LaneNum][x]; !ok {
 				XBinStat[m.LaneNum][x] = new(BinStat)
+				XBinStat[m.LaneNum][x].BinValue = x
 			}
 			for y := uint16(0); y < self.PFInfo.NumY; y++ {
 				if _, ok := YBinStat[m.LaneNum][y]; !ok {
 					YBinStat[m.LaneNum][y] = new(BinStat)
+					YBinStat[m.LaneNum][y].BinValue = y
 				}
 
 				val := getter(m, self.PFInfo.NumY, x, y)
@@ -141,7 +145,7 @@ func (self *SubtileInfo) GetPFMetrics() error {
 		if m.RawCluster[self.PFInfo.NumY*x+y] == 0 {
 			return 0
 		}
-		return float64(m.PFCluster[self.PFInfo.NumY*x+y] / m.RawCluster[self.PFInfo.NumY*x+y])
+		return float64(m.PFCluster[self.PFInfo.NumY*x+y]) / float64(m.RawCluster[self.PFInfo.NumY*x+y])
 
 	}
 
@@ -204,10 +208,12 @@ func (self *SubtileInfo) GetFWHMSubTileMetrics(getter convertFwhm, postfn postPr
 		for x := uint16(0); x < uint16(self.FwhmInfo.NumX); x++ {
 			if _, ok := XBinStat[m.LaneNum][x]; !ok {
 				XBinStat[m.LaneNum][x] = new(BinStat)
+				XBinStat[m.LaneNum][x].BinValue = x
 			}
 			for y := uint16(0); y < uint16(self.FwhmInfo.NumY); y++ {
 				if _, ok := YBinStat[m.LaneNum][y]; !ok {
 					YBinStat[m.LaneNum][y] = new(BinStat)
+					YBinStat[m.LaneNum][y].BinValue = y
 				}
 
 				//				val := float64(m.RawCluster[self.PFInfo.NumY*x+y])
@@ -344,4 +350,104 @@ func (self *SubtileInfo) MakeBoxStat() error {
 		}
 	}
 	return err
+}
+
+type BinLaneStat struct {
+	LaneNum    uint16
+	BinBoxStat []*BinStat
+}
+
+type BinStatJson struct {
+	XBinStat []*BinLaneStat
+	YBinStat []*BinLaneStat
+	//	YBinStat map[string]map[string]*BinStat
+}
+
+type SubtileLaneStatJson struct {
+	PF               *BinStatJson
+	DensityRaw       *BinStatJson //need transform from BinArea
+	DensityPF        *BinStatJson
+	ClusterRaw       *BinStatJson
+	ClusterPF        *BinStatJson
+	FWHM_Channels    []*BinStatJson // A G C T
+	FWHM_Channel_All *BinStatJson   // with channels and all
+}
+
+func (self *SubtileLaneStat) ToJson() *SubtileLaneStatJson {
+	ret := new(SubtileLaneStatJson)
+	ret.PF = self.PF.ToJson()
+	ret.DensityRaw = self.DensityRaw.ToJson()
+	ret.DensityPF = self.DensityPF.ToJson()
+	ret.ClusterRaw = self.ClusterRaw.ToJson()
+	ret.ClusterPF = self.ClusterPF.ToJson()
+	for _, v := range self.FWHM_Channels {
+		ret.FWHM_Channels = append(ret.FWHM_Channels, v.ToJson())
+	}
+	ret.FWHM_Channel_All = self.FWHMAll_Channel_All.ToJson()
+	return ret
+}
+
+func (self *BinStatMap) ToJson() *BinStatJson {
+	if self == nil {
+		return nil
+	}
+	ret := new(BinStatJson)
+	numberLanes := len(self.XBinStat)
+	ret.XBinStat = make([]*BinLaneStat, numberLanes)
+
+	lanesX := []int{}
+	for laneNum, _ := range self.XBinStat {
+		lanesX = append(lanesX, int(laneNum))
+	}
+	sort.Ints(lanesX)
+	for i, laneInt := range lanesX {
+		//	for laneNum, binMap := range self.XBinStat {
+		laneNum := uint16(laneInt)
+		binMap := self.XBinStat[laneNum]
+		ret.XBinStat[i] = new(BinLaneStat)
+		ret.XBinStat[i].LaneNum = laneNum
+		numberBins := len(binMap)
+		ret.XBinStat[i].BinBoxStat = make([]*BinStat, numberBins)
+		bins := []int{}
+		for binVal, _ := range binMap {
+			bins = append(bins, int(binVal))
+		}
+		sort.Ints(bins)
+		for j, binVal := range bins {
+			//		for _, stat := range binMap {
+			stat := binMap[uint16(binVal)]
+			ret.XBinStat[i].BinBoxStat[j] = stat
+
+		}
+
+	}
+
+	numberLanes = len(self.YBinStat)
+	ret.YBinStat = make([]*BinLaneStat, numberLanes)
+
+	lanesY := []int{}
+	for laneNum, _ := range self.YBinStat {
+		lanesY = append(lanesY, int(laneNum))
+	}
+	sort.Ints(lanesY)
+	for i, laneInt := range lanesY {
+		//	for laneNum, binMap := range self.XBinStat {
+		laneNum := uint16(laneInt)
+		binMap := self.YBinStat[laneNum]
+		ret.YBinStat[i] = new(BinLaneStat)
+		ret.YBinStat[i].LaneNum = laneNum
+		numberBins := len(binMap)
+		ret.YBinStat[i].BinBoxStat = make([]*BinStat, numberBins)
+		bins := []int{}
+		for binVal, _ := range binMap {
+			bins = append(bins, int(binVal))
+		}
+		sort.Ints(bins)
+		for j, binVal := range bins {
+			//		for _, stat := range binMap {
+			stat := binMap[uint16(binVal)]
+			ret.YBinStat[i].BinBoxStat[j] = stat
+		}
+	}
+	return ret
 }
