@@ -4,6 +4,68 @@ import (
 	"testing"
 )
 
+func TestFwhmGridMetrics(t *testing.T) {
+	//	filename := "./test_data/InterOp/ExtractionMetricsOut.bin"
+	//	filename := `\\ussd-prd-isi04\Voyager\150910_E360_0084_AHG75WCCXX\InterOp\ExtractionMetricsOut.bin`
+	//	filename := `C:\Users\jliu1\GolangProjects\src\github.com\ws6\raptor\test_data\data\flowcells\150924_GAIIX-778_00444_FC66GDFAAXX\InterOp\ExtractionMetricsOut.bin`
+	filename := `\\ussd-prd-isi04\Voyager\160106_HWI-ST347_1760_BHKFGGCCXX\InterOp\FwhmGridMetricsOut.bin`
+	pf := FwhmMetricsInfo{Filename: filename}
+	err := pf.Parse()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	for i, m := range pf.Metrics {
+		t.Log(m.LaneNum, m.TileNum, m.Cycle)
+
+		for _, c := range m.Channels {
+			t.Logf("%d, %d ", c.Channel, len(c.Fwhm))
+			//			for idx, f := range c.Fwhm {
+			//				t.Log(idx, f)
+			//			}
+		}
+		//		t.Log("\n")
+		//		for _, v := range m.PFCluster {
+		//			t.Logf("%d, ", v)
+		//		}
+		//		t.Log("\n")
+		if i >= 10 {
+			break
+		}
+	}
+	t.Logf("%+v\n", pf)
+
+}
+
+func TestPFGridMetrics(t *testing.T) {
+	//	filename := "./test_data/InterOp/ExtractionMetricsOut.bin"
+	//	filename := `\\ussd-prd-isi04\Voyager\150910_E360_0084_AHG75WCCXX\InterOp\ExtractionMetricsOut.bin`
+	//	filename := `C:\Users\jliu1\GolangProjects\src\github.com\ws6\raptor\test_data\data\flowcells\150924_GAIIX-778_00444_FC66GDFAAXX\InterOp\ExtractionMetricsOut.bin`
+	filename := `\\ussd-prd-isi04\Voyager\160106_HWI-ST347_1760_BHKFGGCCXX\InterOp\PFGridMetricsOut.bin`
+	pf := PFMetricsInfo{Filename: filename}
+	err := pf.Parse()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Logf("%+v\n", pf)
+
+	for i, m := range pf.Metrics {
+		t.Log(m.LaneNum, m.TileNum)
+
+		//		for _, v := range m.RawCluster {
+		//			t.Logf("%d, ", v)
+		//		}
+		//		t.Log("\n")
+		//		for _, v := range m.PFCluster {
+		//			t.Logf("%d, ", v)
+		//		}
+		//		t.Log("\n")
+		if i >= 10 {
+			break
+		}
+	}
+}
+
 func TestExtractionMetrics(t *testing.T) {
 	//	filename := "./test_data/InterOp/ExtractionMetricsOut.bin"
 	//	filename := `\\ussd-prd-isi04\Voyager\150910_E360_0084_AHG75WCCXX\InterOp\ExtractionMetricsOut.bin`
@@ -34,7 +96,7 @@ func TestTileMetrics(t *testing.T) {
 		t.Error(err)
 	}
 	for i, v := range em.Metrics {
-		if i >= 100 {
+		if i >= 10 {
 			break
 		}
 		t.Log(v)
