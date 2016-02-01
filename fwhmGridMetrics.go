@@ -72,8 +72,11 @@ func (self *FwhmMetricsInfo) Parse() error {
 		//read RawClusters for all subtiles
 		//from x to y
 		//e,g : x=4 y =2
-		//[1,1] [1,2] [1,3] [1,4]
-		//[2,1] [2,2] [2,3] [2,4]
+		//illumina sort, how fun :)
+		//[1,1] [2,1]
+		//[1,2] [2,2]
+		//[1,3] [2,3]
+		//[1,4] [2,4]
 		m := new(FwhmSubTileMetrics)
 		//read lane number
 		if err := binary.Read(buffer, binary.LittleEndian, &m.LTC); err != nil {
@@ -84,7 +87,6 @@ func (self *FwhmMetricsInfo) Parse() error {
 			return err
 		}
 		for j := uint8(0); j < self.NumChannels; j++ {
-			//		for j := uint8(0); j < uint8(4); j++ { //always four channels
 			fwhmChannel := new(FwhmChannel)
 			fwhmChannel.Channel = j
 			for i := 0; i < numSubTiles; i++ {

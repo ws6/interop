@@ -203,8 +203,7 @@ func (self *SubtileInfo) GetFWHMSubTileMetrics(getter convertFwhm, postfn postPr
 		if _, ok := YBinStat[m.LaneNum]; !ok {
 			YBinStat[m.LaneNum] = make(map[uint16]*BinStat)
 		}
-		//!!! it always has four channels?
-		//		for colorChannel := uint16(0); colorChannel < uint16(4); colorChannel++ {
+
 		for x := uint16(0); x < uint16(self.FwhmInfo.NumX); x++ {
 			if _, ok := XBinStat[m.LaneNum][x]; !ok {
 				XBinStat[m.LaneNum][x] = new(BinStat)
@@ -217,7 +216,8 @@ func (self *SubtileInfo) GetFWHMSubTileMetrics(getter convertFwhm, postfn postPr
 				}
 
 				//				val := float64(m.RawCluster[self.PFInfo.NumY*x+y])
-				val := getter(m, uint16(self.FwhmInfo.NumY), x, y)
+				//				val := getter(m, uint16(self.FwhmInfo.NumY), x, y)
+				val := getter(m, uint16(self.FwhmInfo.NumX), y, x)
 
 				XBinStat[m.LaneNum][x].numbers = append(XBinStat[m.LaneNum][x].numbers, val)
 				YBinStat[m.LaneNum][y].numbers = append(YBinStat[m.LaneNum][y].numbers, val)
@@ -265,13 +265,11 @@ func (self *SubtileInfo) GetFwhmMetricsByChannel(channelIndex uint16) error {
 }
 
 func (self *SubtileInfo) GetFwhmMetricsByAllChannel() error {
-
 	getter := func(m *FwhmSubTileMetrics, Ny, x, y uint16) float64 {
 
 		total := float64(0)
 		for i := 0; i < int(self.FwhmInfo.NumChannels); i++ {
 			metrics := m.Channels[i]
-
 			total += float64(metrics.Fwhm[Ny*x+y])
 		}
 		if self.FwhmInfo.NumChannels == 0 {
