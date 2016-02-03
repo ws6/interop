@@ -31,6 +31,45 @@ type FwhmMetricsInfo struct {
 	err     error
 }
 
+//for to get header only, this will prevent 1Giga bytes size memory being used
+func (self *FwhmMetricsInfo) ParseHeaderOnly() error {
+	if self.err != nil {
+		return self.err
+	}
+	file, err := os.Open(self.Filename)
+	if err != nil {
+		self.err = err
+		return self.err
+	}
+	defer file.Close()
+	buffer := bufio.NewReader(file)
+
+	//read version
+	if err := binary.Read(buffer, binary.LittleEndian, &self.Version); err != nil {
+		return err
+	}
+
+	//read subtile number of X a.k.a columns
+	if err := binary.Read(buffer, binary.LittleEndian, &self.NumX); err != nil {
+		return err
+	}
+	//read subtile number of Y a.k.a rows
+	if err := binary.Read(buffer, binary.LittleEndian, &self.NumY); err != nil {
+		return err
+	}
+
+	//read   NumChannels
+	if err := binary.Read(buffer, binary.LittleEndian, &self.NumChannels); err != nil {
+		return err
+	}
+
+	//read length of each record
+	if err := binary.Read(buffer, binary.LittleEndian, &self.SSize); err != nil {
+		return err
+	}
+
+	return nil
+}
 func (self *FwhmMetricsInfo) Parse() error {
 	if self.err != nil {
 		return self.err
