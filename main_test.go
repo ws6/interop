@@ -8,7 +8,8 @@ func TestFwhmGridMetrics(t *testing.T) {
 	//	filename := "./test_data/InterOp/ExtractionMetricsOut.bin"
 	//	filename := `\\ussd-prd-isi04\Voyager\150910_E360_0084_AHG75WCCXX\InterOp\ExtractionMetricsOut.bin`
 	//	filename := `C:\Users\jliu1\GolangProjects\src\github.com\ws6\raptor\test_data\data\flowcells\150924_GAIIX-778_00444_FC66GDFAAXX\InterOp\ExtractionMetricsOut.bin`
-	filename := `\\ussd-prd-isi04\Voyager\160106_HWI-ST347_1760_BHKFGGCCXX\InterOp\FwhmGridMetricsOut.bin`
+	//	filename := `\\ussd-prd-isi04\Voyager\160106_HWI-ST347_1760_BHKFGGCCXX\InterOp\FwhmGridMetricsOut.bin`
+	filename := `\\ussd-prd-isi04\Voyager\iPeg\150618_G134_0342_AH2YWGBBXX\InterOp\FwhmGridMetricsOut.bin`
 	pf := FwhmMetricsInfo{Filename: filename}
 	err := pf.Parse()
 	if err != nil {

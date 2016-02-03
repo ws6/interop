@@ -370,6 +370,8 @@ type SubtileLaneStatJson struct {
 	ClusterPF        *BinStatJson
 	FWHM_Channels    []*BinStatJson // A G C T
 	FWHM_Channel_All *BinStatJson   // with channels and all
+	FWHM_SIZE_LIMIT  int64
+	FWHW_EXCEED      bool
 }
 
 func (self *SubtileLaneStat) ToJson() *SubtileLaneStatJson {
