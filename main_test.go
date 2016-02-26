@@ -1,10 +1,11 @@
 package interop
 
 import (
+	"encoding/json"
 	"testing"
 )
 
-func TestFwhmGridMetrics(t *testing.T) {
+func xTestFwhmGridMetrics(t *testing.T) {
 	//	filename := "./test_data/InterOp/ExtractionMetricsOut.bin"
 	//	filename := `\\ussd-prd-isi04\Voyager\150910_E360_0084_AHG75WCCXX\InterOp\ExtractionMetricsOut.bin`
 	//	filename := `C:\Users\jliu1\GolangProjects\src\github.com\ws6\raptor\test_data\data\flowcells\150924_GAIIX-778_00444_FC66GDFAAXX\InterOp\ExtractionMetricsOut.bin`
@@ -140,7 +141,7 @@ func TestQMetrics_version5(t *testing.T) {
 
 }
 
-func TestQMetrics_version6(t *testing.T) {
+func xTestQMetrics_version6(t *testing.T) {
 	//	filename := "./test_data/InterOp/QMetricsOut_version6.bin"
 	//	filename := "./test_data/QMetricsOut.bin"
 	filename := `\\sd-isilon\trex\Opus\150512_ST-E00107_0505_BH01V5CFXX\InterOp\QMetricsOut.bin`
@@ -168,6 +169,25 @@ func TestErrorMetrics(t *testing.T) {
 	}
 
 	t.Log(len(em.Metrics))
+	dim := em.GetDimMax()
+	t.Logf("%+v\n", dim)
+	tileER := em.ErrorRateByTile()
+	t.Logf("%+v\n", tileER)
+	for _, ln := range tileER.Lanes {
+		//		t.Logf("%+v\n", ln)
+		b, err := json.Marshal(ln)
+		if err != nil {
+			t.Error(err)
+		}
+		t.Logf("%s\n", string(b))
+	}
+	return
+	for i, each := range em.Metrics {
+		if i >= 1000 {
+			break
+		}
+		t.Log(each.TileNum, each.LaneNum)
+	}
 }
 
 func TestCorrectedIntMetrics(t *testing.T) {

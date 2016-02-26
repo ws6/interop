@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestSubTileStat(t *testing.T) {
+func xTestSubTileStat(t *testing.T) {
 	//	pfGridFilename := `C:\Users\jliu1\GolangProjects\src\github.com\ws6\raptor\test_data\data\flowcells\160106_HWI-ST347_1760_BHKFGGCCXX\InterOp\PFGridMetricsOut.bin`
 	pfGridFilename := `\\ussd-prd-isi04\Voyager\160108_HS3000-1132_2191_Bh2gthcfxx\InterOp\PFGridMetricsOut.bin`
 	//	fwhmFilename := `C:\Users\jliu1\GolangProjects\src\github.com\ws6\raptor\test_data\data\flowcells\160106_HWI-ST347_1760_BHKFGGCCXX\InterOp\FWHMGridMetricsOut.bin`
@@ -47,7 +47,7 @@ func TestSubTileStat(t *testing.T) {
 
 }
 
-func TestBoxStat(t *testing.T) {
+func xTestBoxStat(t *testing.T) {
 	a := []float64{1, 2, 3, 4, 5, 6, 7, 12, 3, 5, 19, 7}
 	stat := new(BoxWhiskerStat)
 	if err := stat.GetFloat64(&a); err != nil {
