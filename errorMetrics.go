@@ -228,19 +228,19 @@ func (self *ErrorInfo) GetDimMax() TileDimension {
 }
 
 func MeanStatFloat32(a *[]float32) (mean float32, stdev float32) {
-	sum, devsum := float32(0.0), float32(0.0)
+	sum, devsum := float64(0.0), float64(0.0)
 	arr := *a
 	num := len(arr)
 	if num == 0 {
 		return
 	}
 	for _, v := range arr {
-		sum += v
+		sum += float64(v)
 	}
-	mean = sum / float32(num)
+	mean = float32(sum / float64(num))
 	for _, v := range arr {
 		b := mean - v
-		devsum += (b * b)
+		devsum += float64(b * b)
 	}
 	stdev = float32(math.Sqrt(float64(devsum) / float64(num)))
 	return
@@ -285,6 +285,7 @@ func (self *ErrorInfo) ErrorRateByTile() FlowcellErrorRate {
 
 	//load
 	for _, m := range self.Metrics {
+
 		tileDim := GetTileDim(m.TileNum)
 		laneIndex := ret.LaneNumToIndex[m.LaneNum]
 		surfaceIndex := tileDim.Surface - 1
@@ -305,6 +306,7 @@ func (self *ErrorInfo) ErrorRateByTile() FlowcellErrorRate {
 				for swathTiles := uint16(0); swathTiles < dim.TilesInSwath; swathTiles++ {
 					tile := lr.Surfaces[surface][swath][swathTiles]
 					tile.MeanErrorRate, _ = MeanStatFloat32(&tile.ErrorRates)
+
 				}
 			}
 		}
