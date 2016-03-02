@@ -161,7 +161,8 @@ func xTestQMetrics_version6(t *testing.T) {
 }
 
 func TestErrorMetrics(t *testing.T) {
-	filename := "./test_data/InterOp/ErrorMetricsOut.bin"
+	//	filename := "./test_data/InterOp/ErrorMetricsOut.bin"
+	filename := `\\ussd-prd-isi04\Voyager\Voychem\160212_E355_0238_A00WNCAAVY\InterOp\ErrorMetricsOut.bin`
 	em := ErrorInfo{Filename: filename}
 	err := em.Parse()
 	if err != nil {
@@ -181,6 +182,22 @@ func TestErrorMetrics(t *testing.T) {
 		}
 		t.Logf("%s\n", string(b))
 	}
+	exMap := make(map[uint16]bool)
+	for i := uint16(150); i < uint16(301); i++ {
+		exMap[i] = true
+	}
+	bubbles := em.BubbleCounter(exMap)
+	t.Logf(" bubbles\n %+v\n", bubbles)
+	for _, ln := range bubbles.Lanes {
+		//		t.Logf("%+v\n", ln)
+		b, err := json.Marshal(ln)
+		if err != nil {
+			t.Error(err)
+		}
+		t.Logf("%s\n", string(b))
+	}
+	bubSum := bubbles.GetBubbleSum()
+	t.Logf(" bubbles Sumamry\n %+v\n", bubSum)
 	return
 	for i, each := range em.Metrics {
 		if i >= 1000 {

@@ -7,6 +7,10 @@ import (
 	"os"
 )
 
+var (
+	BUBBLE_THRESH_RATE = float32(1.5)
+)
+
 type ErrorMetrics struct {
 	LaneNum         uint16
 	TileNum         uint16
@@ -33,6 +37,7 @@ type TileDimension struct {
 	ValueName    string
 	Surface      uint16
 	Swath        uint16
+	Cycle        uint16 //total cycles
 	TilesInSwath uint16
 	Lanes        []uint16
 }
@@ -41,6 +46,15 @@ type FlowcellErrorRate struct {
 	Dim            TileDimension
 	Lanes          []*LaneErrorRate
 	LaneNumToIndex []uint16 //Lookup for laneNum to index ae Lanes LaneIndex[Lane4]->1; maybe map but not ideal
+}
+
+type BubbleSum struct {
+	BubbledTiles       int
+	TotalBubbles       int // across all tiles
+	BubbleRate         float32
+	MeanInBubbledTiles float32
+	MeanInAllTiles     float32
+	FlowcellErrorRate
 }
 
 type ErrorInfo struct {
@@ -217,9 +231,13 @@ func (self *ErrorInfo) GetDimMax() TileDimension {
 		if dim.TilesInSwath > ret.TilesInSwath {
 			ret.TilesInSwath = dim.TilesInSwath
 		}
+		if m.Cycle > ret.Cycle {
+			ret.Cycle = m.Cycle
+		}
 		if _, ok := laneMap[m.LaneNum]; !ok {
 			laneMap[m.LaneNum] = true
 		}
+
 	}
 	for ln, _ := range laneMap {
 		ret.Lanes = append(ret.Lanes, ln)
@@ -312,5 +330,154 @@ func (self *ErrorInfo) ErrorRateByTile() FlowcellErrorRate {
 		}
 	}
 
+	return ret
+}
+
+func (self *TileErrorRate) BubbleCount(excludeCycles map[uint16]bool) {
+	//no valid data
+	if self.TileNum == uint16(0) {
+		return
+	}
+	sz := len(self.ErrorRates)
+	for cycle, cur := range self.ErrorRates {
+		if excludeCycles != nil {
+			if _, ok := excludeCycles[uint16(cycle+1)]; ok {
+				continue
+			}
+		}
+
+		//skip first cycle
+		if cycle == 0 {
+			continue
+		}
+		//skip last two cycles
+		if (cycle) >= sz-2 {
+			continue
+		}
+		//skip current error rate zero
+		if cur == float32(0) {
+			continue
+		}
+		pre := self.ErrorRates[cycle-1]
+		//skip pre no error rate
+		if pre == float32(0) {
+			continue
+		}
+		next := self.ErrorRates[cycle+1]
+		//skip next no error rate
+		if next == float32(0) {
+			continue
+		}
+
+		if cur >= BUBBLE_THRESH_RATE*(pre+next) {
+			//			fmt.Println(self.TileNum, cycle-1, cycle, cycle+1, pre, cur, next, BUBBLE_THRESH_RATE*(pre+next))
+			self.MeanErrorRate += float32(1) // the correct name should be num bubbles
+		}
+
+	}
+}
+
+//count all cycles before filter. let sage to do filtering
+func (self *ErrorInfo) BubbleCounter(excludeCycles map[uint16]bool) FlowcellErrorRate {
+
+	ret := FlowcellErrorRate{}
+	//init
+
+	dim := self.GetDimMax()
+	ret.Dim = dim
+	ret.Dim.ValueName = "Bubble Count"
+	//	fmt.Printf("%+v\n", dim)
+	ret.Lanes = make([]*LaneErrorRate, len(dim.Lanes))
+	maxLenNum := uint16(0)
+	for i, ln := range dim.Lanes {
+		if ln > maxLenNum {
+			maxLenNum = ln
+		}
+		ret.Lanes[i] = new(LaneErrorRate)
+		ret.Lanes[i].LaneNum = ln
+
+	}
+	//create look up
+	ret.LaneNumToIndex = make([]uint16, maxLenNum+1)
+	for i, ln := range dim.Lanes {
+		ret.LaneNumToIndex[ln] = uint16(i)
+	}
+	//init surface, swath, cycles
+	for _, lr := range ret.Lanes {
+		lr.Surfaces = make([][][]*TileErrorRate, dim.Surface)
+		for surface := uint16(0); surface < dim.Surface; surface++ {
+			lr.Surfaces[surface] = make([][]*TileErrorRate, dim.Swath)
+			for swath := uint16(0); swath < dim.Swath; swath++ {
+				lr.Surfaces[surface][swath] = make([]*TileErrorRate, dim.TilesInSwath)
+				for swathTiles := uint16(0); swathTiles < dim.TilesInSwath; swathTiles++ {
+					er := new(TileErrorRate)
+					er.ErrorRates = make([]float32, dim.Cycle)
+					lr.Surfaces[surface][swath][swathTiles] = er
+				}
+			}
+		}
+	}
+
+	//load
+	for _, m := range self.Metrics {
+		tileDim := GetTileDim(m.TileNum)
+		laneIndex := ret.LaneNumToIndex[m.LaneNum]
+		surfaceIndex := tileDim.Surface - 1
+		swathIndex := tileDim.Swath - 1
+		swathTileIndex := tileDim.TilesInSwath - 1
+		tile := ret.Lanes[laneIndex].Surfaces[surfaceIndex][swathIndex][swathTileIndex]
+		tile.TileNum = m.TileNum
+		tile.ErrorRates[m.Cycle-1] = m.ErrorRate
+
+	}
+	//compute
+	for _, lr := range ret.Lanes {
+
+		for surface := uint16(0); surface < dim.Surface; surface++ {
+
+			for swath := uint16(0); swath < dim.Swath; swath++ {
+
+				for swathTiles := uint16(0); swathTiles < dim.TilesInSwath; swathTiles++ {
+					tile := lr.Surfaces[surface][swath][swathTiles]
+					tile.BubbleCount(excludeCycles)
+					//					if tile.MeanErrorRate > float32(0) {
+					//						fmt.Println(lr.LaneNum, surface, swath, swathTiles, tile.TileNum)
+					//					}
+				}
+			}
+		}
+	}
+
+	return ret
+}
+
+func (self *FlowcellErrorRate) GetBubbleSum() BubbleSum {
+	ret := BubbleSum{
+		FlowcellErrorRate: *self,
+	}
+	dim := self.Dim
+	for _, lr := range self.Lanes {
+
+		for surface := uint16(0); surface < dim.Surface; surface++ {
+
+			for swath := uint16(0); swath < dim.Swath; swath++ {
+
+				for swathTiles := uint16(0); swathTiles < dim.TilesInSwath; swathTiles++ {
+					tile := lr.Surfaces[surface][swath][swathTiles]
+					//remove small fraction of float hack, maybe not have
+					if tile.MeanErrorRate > float32(0) {
+						ret.BubbledTiles++
+						ret.TotalBubbles += int(tile.MeanErrorRate)
+					}
+				}
+			}
+		}
+	}
+	if ret.TotalBubbles != 0 {
+		ret.BubbleRate = float32(ret.BubbledTiles) / float32(ret.TotalBubbles)
+	}
+	if ret.BubbledTiles != 0 {
+		ret.MeanInBubbledTiles = float32(ret.TotalBubbles) / float32(ret.BubbledTiles)
+	}
 	return ret
 }
