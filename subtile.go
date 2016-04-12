@@ -196,15 +196,10 @@ func (self *SubtileInfo) GetClusterPFMetrics() error {
 
 func (self *SubtileInfo) GetPFMetricsFiltered(filter func(lane, tile uint16) bool) error {
 	getter := func(m *PFSubTileMetrics, Ny, x, y uint16) float64 {
-		if m.RawCluster[self.PFInfo.NumY*x+y] == 0 {
-			return 0
-		}
-		return float64(m.PFCluster[self.PFInfo.NumY*x+y]) / float64(m.RawCluster[self.PFInfo.NumY*x+y])
-
+		return float64(m.PFCluster[self.PFInfo.NumY*x+y])
 	}
-
 	postfn := func(self *SubtileInfo, binMap *BinStatMap) error {
-		self.PF = binMap
+		self.ClusterPF = binMap
 		return nil
 	}
 	return self.GetPFSubTileMetricsFiltered(getter, postfn, filter)
