@@ -2,8 +2,48 @@ package interop
 
 import (
 	"encoding/json"
+
 	"testing"
 )
+
+func TestExtendMetrics(t *testing.T) {
+	//	filename := "./test_data/InterOp/TileMetricsOut.bin"
+	//	filename := `\\ussd-prd-isi04\Voyager\150910_E360_0084_AHG75WCCXX\InterOp\TileMetricsOut.bin`
+	filename := `\\ussd-prd-isi04\Voyager\160401_SN924_2689_A057KBAAVY\InterOp\ExtendedTileMetricsOut.bin`
+	em := ExtendMetricsInfo{Filename: filename}
+	err := em.Parse()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(em.Version, em.SSize)
+	for _, v := range em.Metrics {
+		//		if i >= 10 {
+		//			break
+		//		}
+		t.Logf("%+v\n", v)
+	}
+	t.Log(len(em.Metrics))
+}
+
+func TestRegistrationMetrics(t *testing.T) {
+	//	filename := "./test_data/InterOp/TileMetricsOut.bin"
+	//	filename := `\\ussd-prd-isi04\Voyager\150910_E360_0084_AHG75WCCXX\InterOp\TileMetricsOut.bin`
+	filename := `\\ussd-prd-isi04\Voyager\160401_SN924_2689_A057KBAAVY\InterOp\RegistrationMetricsOut.bin`
+	em := RegistrationMetricsInfo{Filename: filename}
+	err := em.Parse()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(em.Version, em.SSize, em.NumOfChannels, em.NumberOfSubRegions)
+	for i, v := range em.Metrics {
+		if i >= 10 {
+			break
+		}
+		t.Log(v.LTC)
+		t.Logf("%+v\n", v.Channels)
+	}
+	t.Log(len(em.Metrics))
+}
 
 func xTestFwhmGridMetrics(t *testing.T) {
 	//	filename := "./test_data/InterOp/ExtractionMetricsOut.bin"
@@ -219,13 +259,26 @@ func TestCorrectedIntMetrics(t *testing.T) {
 }
 
 func TestImageMetrics(t *testing.T) {
-	filename := "./test_data/InterOp/ImageMetricsOut.bin"
+	//version 2
+	filename := `\\ussd-prd-isi04\Voyager\160401_SN924_2689_A057KBAAVY\InterOp\ImageMetricsOut.bin`
 	em := ImageInfo{Filename: filename}
 	err := em.Parse()
+	t.Log(em.Version)
 	if err != nil {
 		t.Error(err)
 	}
 	t.Log(len(em.Metrics))
+
+	//version 1
+	filename = "./test_data/InterOp/ImageMetricsOut.bin"
+	em = ImageInfo{Filename: filename}
+	err = em.Parse()
+	t.Log(em.Version)
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(len(em.Metrics))
+
 }
 
 func TestIndexMetrics(t *testing.T) {

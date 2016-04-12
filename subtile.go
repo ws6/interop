@@ -69,6 +69,58 @@ func (self *SubtileInfo) Validate() error {
 	return nil
 }
 
+func (self *SubtileInfo) GetPFSubTileMetricsFiltered(getter convert, postfn postProcess, filter func(lane, tile uint16) bool) error {
+	if err := self.Validate(); err != nil {
+		return err
+	}
+
+	XBinStat := make(map[uint16]map[uint16]*BinStat) // lane ->Xbin ->stat
+	YBinStat := make(map[uint16]map[uint16]*BinStat) //lane->Ybin->stat
+
+	for _, m := range self.PFInfo.Metrics {
+		if !filter(m.LaneNum, m.TileNum) {
+			continue
+		}
+		if _, ok := XBinStat[m.LaneNum]; !ok {
+			XBinStat[m.LaneNum] = make(map[uint16]*BinStat)
+		}
+		if _, ok := YBinStat[m.LaneNum]; !ok {
+			YBinStat[m.LaneNum] = make(map[uint16]*BinStat)
+		}
+		for x := uint16(0); x < self.PFInfo.NumX; x++ {
+			if _, ok := XBinStat[m.LaneNum][x]; !ok {
+				XBinStat[m.LaneNum][x] = new(BinStat)
+				XBinStat[m.LaneNum][x].BinValue = x
+			}
+			for y := uint16(0); y < self.PFInfo.NumY; y++ {
+				if _, ok := YBinStat[m.LaneNum][y]; !ok {
+					YBinStat[m.LaneNum][y] = new(BinStat)
+					YBinStat[m.LaneNum][y].BinValue = y
+				}
+
+				val := getter(m, self.PFInfo.NumY, x, y)
+				XBinStat[m.LaneNum][x].numbers = append(XBinStat[m.LaneNum][x].numbers, val)
+				YBinStat[m.LaneNum][y].numbers = append(YBinStat[m.LaneNum][y].numbers, val)
+				//TODO push to binX and binY
+			}
+		}
+	}
+	//compute box whisker stat
+	computeBoxStat := func(m map[uint16]map[uint16]*BinStat) {
+		for _, binMap := range m {
+			for _, _stat := range binMap {
+				_stat.BoxWhiskerStat = new(BoxWhiskerStat)
+				_stat.BoxWhiskerStat.GetFloat64(&_stat.numbers)
+			}
+		}
+	}
+
+	computeBoxStat(XBinStat)
+	computeBoxStat(YBinStat)
+
+	return postfn(self, &BinStatMap{XBinStat, YBinStat})
+}
+
 func (self *SubtileInfo) GetPFSubTileMetrics(getter convert, postfn postProcess) error {
 	if err := self.Validate(); err != nil {
 		return err
@@ -138,6 +190,24 @@ func (self *SubtileInfo) GetClusterPFMetrics() error {
 		return nil
 	}
 	return self.GetPFSubTileMetrics(getter, postfn)
+}
+
+//GetPFSubTileMetricsFiltered
+
+func (self *SubtileInfo) GetPFMetricsFiltered(filter func(lane, tile uint16) bool) error {
+	getter := func(m *PFSubTileMetrics, Ny, x, y uint16) float64 {
+		if m.RawCluster[self.PFInfo.NumY*x+y] == 0 {
+			return 0
+		}
+		return float64(m.PFCluster[self.PFInfo.NumY*x+y]) / float64(m.RawCluster[self.PFInfo.NumY*x+y])
+
+	}
+
+	postfn := func(self *SubtileInfo, binMap *BinStatMap) error {
+		self.PF = binMap
+		return nil
+	}
+	return self.GetPFSubTileMetricsFiltered(getter, postfn, filter)
 }
 
 func (self *SubtileInfo) GetPFMetrics() error {
