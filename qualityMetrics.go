@@ -9,6 +9,10 @@ import (
 )
 
 //common struct Lane,Tile and Cycle
+var (
+	QSCORE_UPPER = 100
+)
+
 type LTC struct {
 	LaneNum uint16
 	TileNum uint16
@@ -129,6 +133,8 @@ func (self *QMetricsInfo) ParseVersion6(buffer *bufio.Reader) error {
 	if self.err = self.ParseQbinConfig(buffer); self.err != nil {
 		return self.err
 	}
+	fmt.Printf("%+v\n", self.Version)
+	fmt.Printf("%+v\n", self.QbinConfig)
 	if self.EnableQbin {
 		if self.err = self.ValidateQbinConfig(); self.err != nil {
 			return self.err

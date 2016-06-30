@@ -4,6 +4,7 @@ package interop
 import (
 	"bufio"
 	"encoding/binary"
+	"io"
 	//	"fmt"
 	//	"math"
 	"os"
@@ -70,6 +71,7 @@ func (self *FwhmMetricsInfo) ParseHeaderOnly() error {
 
 	return nil
 }
+
 func (self *FwhmMetricsInfo) Parse() error {
 	if self.err != nil {
 		return self.err
@@ -80,7 +82,13 @@ func (self *FwhmMetricsInfo) Parse() error {
 		return self.err
 	}
 	defer file.Close()
+
 	buffer := bufio.NewReader(file)
+	return self.ParseIOReader(buffer)
+
+}
+
+func (self *FwhmMetricsInfo) ParseIOReader(buffer io.Reader) (err error) {
 
 	//read version
 	if err := binary.Read(buffer, binary.LittleEndian, &self.Version); err != nil {
