@@ -69,7 +69,7 @@ func (self *SubtileInfo) Validate() error {
 	return nil
 }
 
-func (self *SubtileInfo) GetPFSubTileMetricsFiltered(getter convert, postfn postProcess, filter func(lane, tile uint16) bool) error {
+func (self *SubtileInfo) GetMetricsFiltered(getter convert, postfn postProcess, filter func(lane, tile uint16) bool) error {
 	if err := self.Validate(); err != nil {
 		return err
 	}
@@ -202,7 +202,39 @@ func (self *SubtileInfo) GetPFMetricsFiltered(filter func(lane, tile uint16) boo
 		self.ClusterPF = binMap
 		return nil
 	}
-	return self.GetPFSubTileMetricsFiltered(getter, postfn, filter)
+	return self.GetMetricsFiltered(getter, postfn, filter)
+}
+
+//TODO add ClusterRaw filtered function
+func (self *SubtileInfo) GetRawClusterMetricsFiltered(filter func(lane, tile uint16) bool) error {
+	getter := func(m *PFSubTileMetrics, Ny, x, y uint16) float64 {
+		return float64(m.RawCluster[self.PFInfo.NumY*x+y])
+	}
+	postfn := func(self *SubtileInfo, binMap *BinStatMap) error {
+		self.ClusterRaw = binMap
+		return nil
+	}
+	return self.GetMetricsFiltered(getter, postfn, filter)
+}
+
+func (self *SubtileInfo) GetPctPF_Filtered(filter func(lane, tile uint16) bool) error {
+	//load ClusterPF
+	//load clusterRaw
+	//compute pct pf
+	getter := func(m *PFSubTileMetrics, Ny, x, y uint16) float64 {
+		if m.RawCluster[self.PFInfo.NumY*x+y] == 0 {
+			return 0
+		}
+		return float64(100.*m.PFCluster[self.PFInfo.NumY*x+y]) / float64(m.RawCluster[self.PFInfo.NumY*x+y])
+
+	}
+
+	postfn := func(self *SubtileInfo, binMap *BinStatMap) error {
+		self.PF = binMap
+		return nil
+	}
+	return self.GetMetricsFiltered(getter, postfn, filter)
+	//	return self.GetPFSubTileMetrics(getter, postfn)
 }
 
 func (self *SubtileInfo) GetPFMetrics() error {
