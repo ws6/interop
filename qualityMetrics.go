@@ -105,8 +105,8 @@ func (self *QMetricsInfo) ParseNonQbin(buffer *bufio.Reader) error {
 
 func boundCheck(arr []uint8, errTag string) error {
 	for i, v := range arr {
-		if v >= 50 {
-			return fmt.Errorf("%s: %d >=50 at %d", errTag, v, i)
+		if v > 60 {
+			return fmt.Errorf("%s: %d >60 at %d", errTag, v, i)
 		}
 	}
 	return nil
@@ -133,10 +133,12 @@ func (self *QMetricsInfo) ParseVersion6(buffer *bufio.Reader) error {
 	if self.err = self.ParseQbinConfig(buffer); self.err != nil {
 		return self.err
 	}
-	//	fmt.Printf("%+v\n", self.Version)
-	//	fmt.Printf("%+v\n", self.QbinConfig)
+	fmt.Printf("%+v\n", self.Version)
+	fmt.Printf("%+v\n", self.QbinConfig)
 	if self.EnableQbin {
 		if self.err = self.ValidateQbinConfig(); self.err != nil {
+			fmt.Printf("%+v\n", self.Version)
+			fmt.Printf("%+v\n", self.QbinConfig)
 			return self.err
 		}
 	}

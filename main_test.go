@@ -148,15 +148,19 @@ func TestTileMetrics(t *testing.T) {
 
 func TestQMetrics(t *testing.T) {
 	//	filename := "./test_data/InterOp/QMetricsOut.bin"
-	filename := `C:\Users\jliu1\GolangProjects\src\github.com\ws6\raptor\test_data\data\flowcells\150924_GAIIX-778_00444_FC66GDFAAXX\InterOp\QMetricsOut.bin`
+	//	filename := `C:\Users\jliu1\GolangProjects\src\github.com\ws6\raptor\test_data\data\flowcells\150924_GAIIX-778_00444_FC66GDFAAXX\InterOp\QMetricsOut.bin`
+	filename := `\\ussd-prd-isi04\Voyager\160701_VP1-08_0164_A027BCABVY\InterOp\QMetricsOut.bin`
 	em := QMetricsInfo{Filename: filename}
 	err := em.Parse()
 	if err != nil {
 		t.Error(err)
 	}
-	//	for _, v := range em.Metrics {
-	//		t.Log(v)
-	//	}
+	for i, v := range em.Metrics {
+		if i >= 100 {
+			break
+		}
+		t.Log(v)
+	}
 	t.Log(em.EnableQbin)
 }
 
