@@ -216,10 +216,11 @@ func (self *TileInfo) CodeStatByLane(laneNum, Code uint16) (mean float64, stdev 
 		count++
 		sum += float64(cv.MetricValue)
 	}
-	mean = sum / float64(count)
+
 	if count == 0 {
 		return
 	}
+	mean = sum / float64(count)
 
 	for _, cv := range self.Metrics {
 		if cv.LaneNum != laneNum {

@@ -6,6 +6,28 @@ import (
 	"testing"
 )
 
+func TestEmpericalPhasing(t *testing.T) {
+	filename := `\\ussd-prd-isi04\Voyager\160701_VP1-08_0164_A027BCABVY\InterOp\EmpiricalPhasingMetricsOut.bin`
+
+	em := EmpericalPhasingInfo{Filename: filename}
+	err := em.Parse()
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	t.Log(em.Version, em.SSize, len(em.Metrics))
+	printed := 0
+	for _, _m := range em.Metrics {
+		if printed > 20 {
+			break
+		}
+		if _m.Phasing > 0 {
+			t.Logf("%+v\n", _m)
+			printed++
+		}
+
+	}
+
+}
 func TestExtendMetrics(t *testing.T) {
 	//	filename := "./test_data/InterOp/TileMetricsOut.bin"
 	//	filename := `\\ussd-prd-isi04\Voyager\150910_E360_0084_AHG75WCCXX\InterOp\TileMetricsOut.bin`
@@ -131,14 +153,15 @@ func TestExtractionMetrics(t *testing.T) {
 func TestTileMetrics(t *testing.T) {
 	//	filename := "./test_data/InterOp/TileMetricsOut.bin"
 	//	filename := `\\ussd-prd-isi04\Voyager\150910_E360_0084_AHG75WCCXX\InterOp\TileMetricsOut.bin`
-	filename := `C:\Users\jliu1\GolangProjects\src\github.com\ws6\raptor\test_data\data\flowcells\150924_GAIIX-778_00444_FC66GDFAAXX\InterOp\TileMetricsOut.bin`
+	//	filename := `C:\Users\jliu1\GolangProjects\src\github.com\ws6\raptor\test_data\data\flowcells\150924_GAIIX-778_00444_FC66GDFAAXX\InterOp\TileMetricsOut.bin`
+	filename := `\\ussd-prd-isi04\Voyager\160701_VP1-08_0164_A027BCABVY\InterOp\TileMetricsOut.bin`
 	em := TileInfo{Filename: filename}
 	err := em.Parse()
 	if err != nil {
 		t.Error(err)
 	}
 	for i, v := range em.Metrics {
-		if i >= 10 {
+		if i >= 1000 {
 			break
 		}
 		t.Log(v)
