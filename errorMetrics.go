@@ -2,9 +2,10 @@ package interop
 
 import (
 	"encoding/binary"
-	//	"fmt"
+	"fmt"
 	"math"
 	"os"
+	"strconv"
 )
 
 var (
@@ -290,6 +291,8 @@ func (self *ErrorInfo) ErrorRateByTile() FlowcellErrorRate {
 		ret.LaneNumToIndex[ln] = uint16(i)
 	}
 	//init surface, swath
+	numPad := int(math.Log10(float64(dim.TilesInSwath)) + 1)
+	formatter := fmt.Sprintf("%%d%%d%%0%dd", numPad)
 	for _, lr := range ret.Lanes {
 		lr.Surfaces = make([][][]*TileErrorRate, dim.Surface)
 		for surface := uint16(0); surface < dim.Surface; surface++ {
@@ -297,7 +300,15 @@ func (self *ErrorInfo) ErrorRateByTile() FlowcellErrorRate {
 			for swath := uint16(0); swath < dim.Swath; swath++ {
 				lr.Surfaces[surface][swath] = make([]*TileErrorRate, dim.TilesInSwath)
 				for swathTiles := uint16(0); swathTiles < dim.TilesInSwath; swathTiles++ {
-					lr.Surfaces[surface][swath][swathTiles] = new(TileErrorRate)
+					te := new(TileErrorRate)
+					//TODO add tile number here
+					tileStr := fmt.Sprintf(formatter, surface+1, swath+1, swathTiles+1)
+					tn, err := strconv.Atoi(tileStr)
+					if err != nil {
+						fmt.Println(err.Error())
+					}
+					te.TileNum = uint16(tn)
+					lr.Surfaces[surface][swath][swathTiles] = te
 				}
 			}
 		}
