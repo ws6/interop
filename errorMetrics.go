@@ -267,6 +267,56 @@ func MeanStatFloat32(a *[]float32) (mean float32, stdev float32) {
 	return
 }
 
+//GetWhiteErrorRate only given empty of ErrorRateMetrics
+func GetWhiteErrorRate(dim *TileDimension) FlowcellErrorRate {
+	ret := FlowcellErrorRate{}
+	//init
+
+	ret.Dim = *dim
+	ret.Dim.ValueName = "Blank Tile Map"
+	fmt.Printf("%+v\n", ret.Dim)
+	ret.Lanes = make([]*LaneErrorRate, len(dim.Lanes))
+	maxLenNum := uint16(0)
+	for i, ln := range dim.Lanes {
+		if ln > maxLenNum {
+			maxLenNum = ln
+		}
+		ret.Lanes[i] = new(LaneErrorRate)
+		ret.Lanes[i].LaneNum = ln
+
+	}
+	//create look up
+	ret.LaneNumToIndex = make([]uint16, maxLenNum+1)
+	for i, ln := range dim.Lanes {
+		ret.LaneNumToIndex[ln] = uint16(i)
+	}
+	//init surface, swath
+	numPad := int(math.Log10(float64(dim.TilesInSwath)) + 1)
+	formatter := fmt.Sprintf("%%d%%d%%0%dd", numPad)
+	for _, lr := range ret.Lanes {
+		lr.Surfaces = make([][][]*TileErrorRate, dim.Surface)
+		for surface := uint16(0); surface < dim.Surface; surface++ {
+			lr.Surfaces[surface] = make([][]*TileErrorRate, dim.Swath)
+			for swath := uint16(0); swath < dim.Swath; swath++ {
+				lr.Surfaces[surface][swath] = make([]*TileErrorRate, dim.TilesInSwath)
+				for swathTiles := uint16(0); swathTiles < dim.TilesInSwath; swathTiles++ {
+					te := new(TileErrorRate)
+					//TODO add tile number here
+					tileStr := fmt.Sprintf(formatter, surface+1, swath+1, swathTiles+1)
+					tn, err := strconv.Atoi(tileStr)
+					if err != nil {
+						fmt.Println(err.Error())
+					}
+					te.TileNum = uint16(tn)
+					lr.Surfaces[surface][swath][swathTiles] = te
+				}
+			}
+		}
+	}
+
+	return ret
+}
+
 func (self *ErrorInfo) ErrorRateByTile() FlowcellErrorRate {
 	ret := FlowcellErrorRate{}
 	//init
