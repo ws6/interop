@@ -317,11 +317,18 @@ func GetWhiteErrorRate(dim *TileDimension) FlowcellErrorRate {
 	return ret
 }
 
-func (self *ErrorInfo) ErrorRateByTile() FlowcellErrorRate {
+func (self *ErrorInfo) ErrorRateByTile(_dim *TileDimension) FlowcellErrorRate {
 	ret := FlowcellErrorRate{}
 	//init
 
 	dim := self.GetDimMax()
+	if _dim != nil { //overwrite from the given; Voyager patch
+		dim.Lanes = _dim.Lanes
+		dim.Surface = _dim.Surface
+		dim.Swath = _dim.Swath
+		dim.TilesInSwath = _dim.TilesInSwath
+		dim.Cycle = _dim.Cycle
+	}
 	ret.Dim = dim
 	ret.Dim.ValueName = "Error Rate"
 	//	fmt.Printf("%+v\n", dim)
