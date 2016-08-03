@@ -323,11 +323,11 @@ func (self *ErrorInfo) ErrorRateByTile(_dim *TileDimension) FlowcellErrorRate {
 
 	dim := self.GetDimMax()
 	if _dim != nil { //overwrite from the given; Voyager patch
-		dim.Lanes = _dim.Lanes
+		//		dim.Lanes = _dim.Lanes
 		dim.Surface = _dim.Surface
 		dim.Swath = _dim.Swath
 		dim.TilesInSwath = _dim.TilesInSwath
-		dim.Cycle = _dim.Cycle
+		//		dim.Cycle = _dim.Cycle
 	}
 	ret.Dim = dim
 	ret.Dim.ValueName = "Error Rate"
@@ -526,12 +526,22 @@ func (self *ErrorInfo) BubbleCounter(excludeCycles map[uint16]bool) FlowcellErro
 	return ret
 }
 
-func (self *FlowcellErrorRate) GetBubbleSum() BubbleSum {
+func (self *FlowcellErrorRate) GetBubbleSum(_dim *TileDimension) BubbleSum {
 	ret := BubbleSum{
 		FlowcellErrorRate: *self,
 		TotalValidCycles:  self.TotalValidCycles,
 	}
 	dim := self.Dim
+	fmt.Printf("%+v\n", dim)
+	//	if _dim != nil { //overwrite from the given; Voyager patch
+	//		//		dim.Lanes = _dim.Lanes
+	//		dim.Surface = _dim.Surface
+	//		dim.Swath = _dim.Swath
+	//		dim.TilesInSwath = _dim.TilesInSwath
+	//		//		dim.Cycle = _dim.Cycle
+	//	}
+	//	fmt.Printf("%+v\n", dim)
+	//TODO parsing dim
 	for _, lr := range self.Lanes {
 
 		for surface := uint16(0); surface < dim.Surface; surface++ {
@@ -556,5 +566,11 @@ func (self *FlowcellErrorRate) GetBubbleSum() BubbleSum {
 	if ret.BubbledTiles != 0 {
 		ret.MeanInBubbledTiles = float32(ret.TotalBubbles) / float32(ret.BubbledTiles)
 	}
+	//	if _dim != nil {
+	//		ret.FlowcellErrorRate.Dim.TilesInSwath = _dim.TilesInSwath
+	//		//		ret.FlowcellErrorRate.Dim.Surface = _dim.Surface
+	//		//		ret.FlowcellErrorRate.Dim.Swath = _dim.Swath
+	//	}
+
 	return ret
 }
