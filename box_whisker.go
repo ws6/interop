@@ -71,14 +71,14 @@ func (self *BoxWhiskerStat) GetFloat64(arr *[]float64) (_e error) {
 	//	self.Whisker_top = self.
 
 	middle := sz / 2
-	self.Q1 = 0
-	if middle >= 0 && middle < sz {
-		fmt.Println(middle, sz, middle+1)
+	self.Q1 = numbers[0]
+	if middle > 0 && middle < sz {
+
 		self.Q1 = Median(numbers[0:middle])
 	}
-	self.Q3 = 0
-	if (middle+1) >= 0 && (middle+1) < sz {
-		fmt.Println(middle, sz, middle+1)
+	self.Q3 = numbers[0]
+	if (middle+1) > 0 && (middle+1) < sz {
+
 		self.Q3 = Median(numbers[middle+1 : sz])
 	}
 	IQR := self.Q3 - self.Q1
