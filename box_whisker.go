@@ -70,6 +70,7 @@ func (self *BoxWhiskerStat) GetFloat64(arr *[]float64) error {
 	if middle >= 0 && middle <= sz {
 		self.Q1 = Median(numbers[0:middle])
 	}
+	self.Q3 = 0
 	if (middle+1) >= 0 && (middle+1) < sz {
 		self.Q3 = Median(numbers[middle+1 : sz])
 	}
