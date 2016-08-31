@@ -50,7 +50,8 @@ func Median(numbers []float64) float64 {
 	return result
 }
 
-func (self *BoxWhiskerStat) GetFloat64(arr *[]float64) error {
+func (self *BoxWhiskerStat) GetFloat64(arr *[]float64) (_e error) {
+
 	if arr == nil {
 		return fmt.Errorf("array is nil")
 	}
@@ -76,6 +77,7 @@ func (self *BoxWhiskerStat) GetFloat64(arr *[]float64) error {
 	}
 	self.Q3 = 0
 	if (middle+1) >= 0 && (middle+1) < sz {
+		fmt.Println(middle, sz, middle+1)
 		self.Q3 = Median(numbers[middle+1 : sz])
 	}
 	IQR := self.Q3 - self.Q1
