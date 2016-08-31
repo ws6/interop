@@ -59,6 +59,9 @@ func (self *BoxWhiskerStat) GetFloat64(arr *[]float64) error {
 	}
 	numbers := *arr
 	sz := len(numbers)
+	if sz == 0 {
+		return nil
+	}
 	sort.Float64s(numbers)
 	//get box whisker plot from float64 array
 	self.Mean, self.Stdev = MeanStat(arr)
