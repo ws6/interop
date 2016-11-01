@@ -99,7 +99,7 @@ func (self *ExtractionInfo) Parse3(filename string) error {
 		return err
 	}
 
-	fmt.Println(`number of channels `, self.NumChannels, self.SSize, self.Version)
+	//	fmt.Println(`number of channels `, self.NumChannels, self.SSize, self.Version)
 	//	return fmt.Errorf(`term`)
 	//	self.NumChannels = 2
 	for {
