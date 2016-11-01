@@ -134,9 +134,10 @@ func TestExtractionMetrics(t *testing.T) {
 	//	filename := "./test_data/InterOp/ExtractionMetricsOut.bin"
 	//	filename := `\\ussd-prd-isi04\Voyager\150910_E360_0084_AHG75WCCXX\InterOp\ExtractionMetricsOut.bin`
 	//	filename := `C:\Users\jliu1\GolangProjects\src\github.com\ws6\raptor\test_data\data\flowcells\150924_GAIIX-778_00444_FC66GDFAAXX\InterOp\ExtractionMetricsOut.bin`
-	filename := `\\ussd-prd-isi04\ARG\110929_GAIIX-596_00089_FC70LYG_WC_exo+\InterOp\ExtractionMetricsOut.bin`
+	//	filename := `\\ussd-prd-isi04\ARG\110929_GAIIX-596_00089_FC70LYG_WC_exo+\InterOp\ExtractionMetricsOut.bin`
+	filename := `\\ussd-prd-isi04\voyager\161026_VP2-06_0068_AH5LWDMCVY\InterOp\C10.1\ExtractionMetricsOut.bin`
 	em := ExtractionInfo{Filename: filename}
-	err := em.Parse()
+	err := em.Parse3(filename)
 	if err != nil {
 		t.Error(err)
 	}
@@ -239,7 +240,7 @@ func TestErrorMetrics(t *testing.T) {
 	t.Log(len(em.Metrics))
 	dim := em.GetDimMax()
 	t.Logf("%+v\n", dim)
-	tileER := em.ErrorRateByTile()
+	tileER := em.ErrorRateByTile(nil)
 	t.Logf("%+v\n", tileER)
 	for _, ln := range tileER.Lanes {
 		//		t.Logf("%+v\n", ln)
@@ -263,7 +264,7 @@ func TestErrorMetrics(t *testing.T) {
 		}
 		t.Logf("%s\n", string(b))
 	}
-	bubSum := bubbles.GetBubbleSum()
+	bubSum := bubbles.GetBubbleSum(nil)
 	t.Logf(" bubbles Sumamry\n %+v\n", bubSum)
 	return
 	for i, each := range em.Metrics {

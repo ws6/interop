@@ -2,6 +2,9 @@ package interop
 
 import (
 	"encoding/binary"
+	"fmt"
+
+	"io"
 
 	"os"
 	"time"
@@ -27,18 +30,38 @@ type ExtractionMetrics struct {
 	Intensity_T uint16
 	CIF_TIME    uint64
 }
+type LTC3 struct {
+	LaneNum uint16
+	//	LaneNum1 uint8
+	//	LaneNum2 uint8
+	TileNum uint32
+	//	T1    uint8
+	//	T2    uint8
+	//	T3    uint8
+	//	T4    uint8
+	Cycle uint16
+}
+
+type ExtractionMetricsV3 struct {
+	LTC3
+	Fwhm      []float32
+	Intensity []uint16
+}
 
 type WinTime struct {
 	DateTime uint64
 }
 
 type ExtractionInfo struct {
-	Filename string
-	Version  uint8
-	SSize    uint8
-	Metrics  []*ExtractionMetrics
-	MaxCycle uint64
-	err      error
+	Filename    string
+	Filenames   []string // for V3
+	Version     uint8
+	SSize       uint8
+	NumChannels uint8
+	Metrics     []*ExtractionMetrics
+	Metrics3    []*ExtractionMetricsV3
+	MaxCycle    uint64
+	err         error
 }
 
 //WinToUnixTimeStamp RTA windows timestamp to linux timestamp
@@ -52,6 +75,79 @@ func WinToUnixTimeStamp(ts uint64) uint64 {
 func GetTime(ts int64) time.Time {
 	return time.Unix(ts, 0)
 }
+func (self *ExtractionInfo) Parse3(filename string) error {
+	if self.err != nil {
+		return self.err
+	}
+	file, err := os.Open(filename)
+	if err != nil {
+		self.err = err
+		return self.err
+	}
+	defer file.Close()
+	//	if err := binary.Read(file, binary.LittleEndian, &self.NumChannels); err != nil {
+	if err := binary.Read(file, binary.LittleEndian, &self.Version); err != nil {
+		return err
+	}
+	if self.Version != 3 {
+		return fmt.Errorf("not RTA3 - %d", self.Version)
+	}
+	if err := binary.Read(file, binary.LittleEndian, &self.SSize); err != nil {
+		return err
+	}
+	if err := binary.Read(file, binary.LittleEndian, &self.NumChannels); err != nil {
+		return err
+	}
+
+	fmt.Println(`number of channels `, self.NumChannels, self.SSize, self.Version)
+	//	return fmt.Errorf(`term`)
+	//	self.NumChannels = 2
+	for {
+		em := new(ExtractionMetricsV3)
+		//		if err := binary.Read(file, binary.LittleEndian, &em.LTC3); err != nil {
+		if err := binary.Read(file, binary.LittleEndian, &em.LTC3); err != nil {
+
+			if err == io.EOF {
+				return nil
+			}
+			return err
+		}
+		//		fmt.Printf("%+v\n", em.LTC3)
+		//TODO read FWHM
+
+		//TODO read intensity
+		for i := 0; i < int(self.NumChannels); i++ {
+			var f float32
+			if err := binary.Read(file, binary.LittleEndian, &f); err != nil {
+
+				if err == io.EOF {
+					return nil
+				}
+				return err
+			}
+			em.Fwhm = append(em.Fwhm, f)
+		}
+
+		for i := 0; i < int(self.NumChannels); i++ {
+			var intensity uint16
+
+			if err := binary.Read(file, binary.LittleEndian, &intensity); err != nil {
+
+				if err == io.EOF {
+					return nil
+				}
+				return err
+			}
+			em.Intensity = append(em.Intensity, intensity)
+		}
+		//		fmt.Printf("%+v\n", em.Intensity)
+		self.Metrics3 = append(self.Metrics3, em)
+	}
+
+	return nil
+}
+
+//caller will open and close the file handler
 
 func (self *ExtractionInfo) Parse() error {
 	if self.err != nil {
@@ -71,6 +167,7 @@ func (self *ExtractionInfo) Parse() error {
 	}
 	self.Version = header.Version
 	self.SSize = header.SSize
+
 	for {
 		em := new(ExtractionMetrics)
 		err = binary.Read(header.Buf, binary.LittleEndian, em)
