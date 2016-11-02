@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"math"
 	"os"
 )
@@ -67,11 +68,11 @@ func (self *QMetricsInfo) ParseQbinConfig7(buffer *bufio.Reader) error {
 
 		return err
 	}
-	self.QbinConfig.LowerBound = make([]uint8, self.NumQscores)
+	self.QbinConfig.LowerBound = make([]uint8, 0)
 
-	self.QbinConfig.UpperBound = make([]uint8, self.NumQscores)
+	self.QbinConfig.UpperBound = make([]uint8, 0)
 
-	self.QbinConfig.ReMapScores = make([]uint8, self.NumQscores)
+	self.QbinConfig.ReMapScores = make([]uint8, 0)
 
 	for i := 0; i < int(self.NumQscores); i++ {
 		q3 := Q3{}
@@ -181,8 +182,6 @@ func (self *QMetricsInfo) ParseVersion7(buffer *bufio.Reader) error {
 		}
 	}
 
-	ok := true
-	n := uint32(0)
 	for {
 		if self.err != nil {
 			if self.err.Error() == "EOF" {
@@ -195,28 +194,30 @@ func (self *QMetricsInfo) ParseVersion7(buffer *bufio.Reader) error {
 			if self.err = binary.Read(buffer, binary.LittleEndian, &m.LTC3); self.err != nil {
 				continue
 			}
-			ok = true
-			for i := uint8(0); i < self.NumQscores; i++ {
-				n = 0
-				if self.err = binary.Read(buffer, binary.LittleEndian, &n); self.err != nil {
-					ok = false
-					break
+
+			for i := 0; i < int(self.NumQscores); i++ {
+				n := uint32(0)
+				if err := binary.Read(buffer, binary.LittleEndian, &n); err != nil {
+
+					if err == io.EOF {
+						return nil
+					}
+					return err
 				}
 				m.NumClusters[self.QbinConfig.ReMapScores[i]] = n
 			}
-			if !ok {
-				continue
-			}
 
 		} else {
-			if self.err = binary.Read(buffer, binary.LittleEndian, m); self.err != nil {
-				continue
+			if err := binary.Read(buffer, binary.LittleEndian, m); err != nil {
+
+				if err == io.EOF {
+					return nil
+				}
+				return err
 			}
 		}
 
-		if self.err == nil {
-			self.Metrics7 = append(self.Metrics7, m)
-		}
+		self.Metrics7 = append(self.Metrics7, m)
 
 	}
 
