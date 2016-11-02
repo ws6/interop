@@ -1,8 +1,10 @@
 package interop
 
 import (
+	"bufio"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"strconv"
@@ -24,8 +26,15 @@ type ErrorMetrics struct {
 	Num_4_Error     uint32
 }
 
+type ErrorMetrics4 struct {
+	LaneNum   uint16
+	TileNum   uint32
+	Cycle     uint16
+	ErrorRate float32
+}
+
 type TileErrorRate struct {
-	TileNum       uint16    `json:"t"` //short json size
+	TileNum       uint32    `json:"t"` //short json size
 	ErrorRates    []float32 `json:"-"` //all cycles
 	MeanErrorRate float32   `json:"v"`
 }
@@ -36,10 +45,10 @@ type LaneErrorRate struct {
 }
 type TileDimension struct {
 	ValueName    string
-	Surface      uint16
-	Swath        uint16
+	Surface      uint32
+	Swath        uint32
 	Cycle        uint16 //total cycles
-	TilesInSwath uint16
+	TilesInSwath uint32
 	Lanes        []uint16
 }
 
@@ -65,7 +74,25 @@ type ErrorInfo struct {
 	Version  uint8
 	SSize    uint8
 	Metrics  []*ErrorMetrics
+	Metrics4 []*ErrorMetrics4
 	err      error
+}
+
+func (self *ErrorInfo) Parse4(buf *bufio.Reader) error {
+	for {
+		em := new(ErrorMetrics4)
+		if err := binary.Read(buf, binary.LittleEndian, em); err != nil {
+
+			if err == io.EOF {
+				return nil
+			}
+			return err
+		}
+
+		self.Metrics4 = append(self.Metrics4, em)
+	}
+
+	return nil
 }
 
 func (self *ErrorInfo) Parse() error {
@@ -86,6 +113,10 @@ func (self *ErrorInfo) Parse() error {
 	}
 	self.Version = header.Version
 	self.SSize = header.SSize
+
+	if self.Version == 4 {
+		return self.Parse4(header.Buf)
+	}
 
 	for {
 		em := new(ErrorMetrics)
@@ -192,9 +223,9 @@ func (self *ErrorInfo) GetStatErrorRateByLane(laneNum uint16, cycleMap *map[uint
 	return
 
 }
-func hi(in uint16) (uint16, uint16) {
+func hi(in uint32) (uint32, uint32) {
 	x := in
-	i := uint16(0)
+	i := uint32(0)
 	for x != 0 {
 		if x < 10 {
 			break
@@ -203,7 +234,7 @@ func hi(in uint16) (uint16, uint16) {
 		x = x / 10
 
 	}
-	tens := uint16(1)
+	tens := uint32(1)
 	for i != 0 {
 		i--
 		tens *= 10
@@ -212,7 +243,7 @@ func hi(in uint16) (uint16, uint16) {
 	return x, remains
 }
 
-func GetTileDim(tileNum uint16) TileDimension {
+func GetTileDim(tileNum uint32) TileDimension {
 	ret := TileDimension{}
 	ret.Surface, ret.TilesInSwath = hi(tileNum)
 	ret.Swath, ret.TilesInSwath = hi(ret.TilesInSwath)
@@ -220,11 +251,47 @@ func GetTileDim(tileNum uint16) TileDimension {
 }
 
 //TODO interface
+func (self *ErrorInfo) GetDimMax4() TileDimension {
+	ret := TileDimension{}
+	laneMap := make(map[uint16]bool)
+	for _, m := range self.Metrics4 {
+		dim := GetTileDim(m.TileNum)
+		if dim.Surface > ret.Surface {
+			ret.Surface = dim.Surface
+		}
+		if dim.Swath > ret.Swath {
+			ret.Swath = dim.Swath
+		}
+		if dim.TilesInSwath > ret.TilesInSwath {
+			ret.TilesInSwath = dim.TilesInSwath
+		}
+		if m.Cycle > ret.Cycle {
+			ret.Cycle = m.Cycle
+		}
+		if _, ok := laneMap[m.LaneNum]; !ok {
+			if m.LaneNum == 0 {
+				continue
+			}
+			laneMap[m.LaneNum] = true
+		}
+
+	}
+	for ln, _ := range laneMap {
+		ret.Lanes = append(ret.Lanes, ln)
+	}
+	return ret
+}
 func (self *ErrorInfo) GetDimMax() TileDimension {
+	if self.Version == 4 {
+		return self.GetDimMax4()
+	}
 	ret := TileDimension{}
 	laneMap := make(map[uint16]bool)
 	for _, m := range self.Metrics {
-		dim := GetTileDim(m.TileNum)
+		if m.TileNum == 0 || m.LaneNum == 0 || m.Cycle == 0 {
+			continue
+		}
+		dim := GetTileDim(uint32(m.TileNum))
 		if dim.Surface > ret.Surface {
 			ret.Surface = dim.Surface
 		}
@@ -295,11 +362,11 @@ func GetWhiteErrorRate(dim *TileDimension) FlowcellErrorRate {
 	formatter := fmt.Sprintf("%%d%%d%%0%dd", numPad)
 	for _, lr := range ret.Lanes {
 		lr.Surfaces = make([][][]*TileErrorRate, dim.Surface)
-		for surface := uint16(0); surface < dim.Surface; surface++ {
+		for surface := uint32(0); surface < dim.Surface; surface++ {
 			lr.Surfaces[surface] = make([][]*TileErrorRate, dim.Swath)
-			for swath := uint16(0); swath < dim.Swath; swath++ {
+			for swath := uint32(0); swath < dim.Swath; swath++ {
 				lr.Surfaces[surface][swath] = make([]*TileErrorRate, dim.TilesInSwath)
-				for swathTiles := uint16(0); swathTiles < dim.TilesInSwath; swathTiles++ {
+				for swathTiles := uint32(0); swathTiles < dim.TilesInSwath; swathTiles++ {
 					te := new(TileErrorRate)
 					//TODO add tile number here
 					tileStr := fmt.Sprintf(formatter, surface+1, swath+1, swathTiles+1)
@@ -307,7 +374,7 @@ func GetWhiteErrorRate(dim *TileDimension) FlowcellErrorRate {
 					if err != nil {
 						fmt.Println(err.Error())
 					}
-					te.TileNum = uint16(tn)
+					te.TileNum = uint32(tn)
 					lr.Surfaces[surface][swath][swathTiles] = te
 				}
 			}
@@ -329,9 +396,9 @@ func (self *ErrorInfo) ErrorRateByTile(_dim *TileDimension) FlowcellErrorRate {
 		dim.TilesInSwath = _dim.TilesInSwath
 		//		dim.Cycle = _dim.Cycle
 	}
+
 	ret.Dim = dim
 	ret.Dim.ValueName = "Error Rate"
-	//	fmt.Printf("%+v\n", dim)
 	ret.Lanes = make([]*LaneErrorRate, len(dim.Lanes))
 	maxLenNum := uint16(0)
 	for i, ln := range dim.Lanes {
@@ -352,11 +419,11 @@ func (self *ErrorInfo) ErrorRateByTile(_dim *TileDimension) FlowcellErrorRate {
 	formatter := fmt.Sprintf("%%d%%d%%0%dd", numPad)
 	for _, lr := range ret.Lanes {
 		lr.Surfaces = make([][][]*TileErrorRate, dim.Surface)
-		for surface := uint16(0); surface < dim.Surface; surface++ {
+		for surface := uint32(0); surface < dim.Surface; surface++ {
 			lr.Surfaces[surface] = make([][]*TileErrorRate, dim.Swath)
-			for swath := uint16(0); swath < dim.Swath; swath++ {
+			for swath := uint32(0); swath < dim.Swath; swath++ {
 				lr.Surfaces[surface][swath] = make([]*TileErrorRate, dim.TilesInSwath)
-				for swathTiles := uint16(0); swathTiles < dim.TilesInSwath; swathTiles++ {
+				for swathTiles := uint32(0); swathTiles < dim.TilesInSwath; swathTiles++ {
 					te := new(TileErrorRate)
 					//TODO add tile number here
 					tileStr := fmt.Sprintf(formatter, surface+1, swath+1, swathTiles+1)
@@ -364,7 +431,7 @@ func (self *ErrorInfo) ErrorRateByTile(_dim *TileDimension) FlowcellErrorRate {
 					if err != nil {
 						fmt.Println(err.Error())
 					}
-					te.TileNum = uint16(tn)
+					te.TileNum = uint32(tn)
 					lr.Surfaces[surface][swath][swathTiles] = te
 				}
 			}
@@ -372,26 +439,45 @@ func (self *ErrorInfo) ErrorRateByTile(_dim *TileDimension) FlowcellErrorRate {
 	}
 
 	//load
-	for _, m := range self.Metrics {
 
-		tileDim := GetTileDim(m.TileNum)
-		laneIndex := ret.LaneNumToIndex[m.LaneNum]
-		surfaceIndex := tileDim.Surface - 1
-		swathIndex := tileDim.Swath - 1
-		swathTileIndex := tileDim.TilesInSwath - 1
-		tile := ret.Lanes[laneIndex].Surfaces[surfaceIndex][swathIndex][swathTileIndex]
-		tile.TileNum = m.TileNum
-		tile.ErrorRates = append(tile.ErrorRates, m.ErrorRate)
+	if self.Version == 4 {
+		for _, m := range self.Metrics4 {
+			if m.TileNum == 0 || m.LaneNum == 0 || m.Cycle == 0 {
+				continue
+			}
+			tileDim := GetTileDim(uint32(m.TileNum))
+			laneIndex := ret.LaneNumToIndex[m.LaneNum]
+			surfaceIndex := tileDim.Surface - 1
+			swathIndex := tileDim.Swath - 1
+			swathTileIndex := tileDim.TilesInSwath - 1
+			//			fmt.Println(laneIndex, surfaceIndex, swathIndex, swathTileIndex)
+			tile := ret.Lanes[laneIndex].Surfaces[surfaceIndex][swathIndex][swathTileIndex]
+			tile.TileNum = m.TileNum
+			tile.ErrorRates = append(tile.ErrorRates, m.ErrorRate)
 
+		}
+	}
+	if self.Version < 4 {
+		for _, m := range self.Metrics {
+			tileDim := GetTileDim(uint32(m.TileNum))
+			laneIndex := ret.LaneNumToIndex[m.LaneNum]
+			surfaceIndex := tileDim.Surface - 1
+			swathIndex := tileDim.Swath - 1
+			swathTileIndex := tileDim.TilesInSwath - 1
+			tile := ret.Lanes[laneIndex].Surfaces[surfaceIndex][swathIndex][swathTileIndex]
+			tile.TileNum = uint32(m.TileNum)
+			tile.ErrorRates = append(tile.ErrorRates, m.ErrorRate)
+
+		}
 	}
 	//compute
 	for _, lr := range ret.Lanes {
 
-		for surface := uint16(0); surface < dim.Surface; surface++ {
+		for surface := uint32(0); surface < dim.Surface; surface++ {
 
-			for swath := uint16(0); swath < dim.Swath; swath++ {
+			for swath := uint32(0); swath < dim.Swath; swath++ {
 
-				for swathTiles := uint16(0); swathTiles < dim.TilesInSwath; swathTiles++ {
+				for swathTiles := uint32(0); swathTiles < dim.TilesInSwath; swathTiles++ {
 					tile := lr.Surfaces[surface][swath][swathTiles]
 					tile.MeanErrorRate, _ = MeanStatFloat32(&tile.ErrorRates)
 
@@ -407,7 +493,7 @@ func (self *ErrorInfo) ErrorRateByTile(_dim *TileDimension) FlowcellErrorRate {
 func (self *TileErrorRate) BubbleCount(excludeCycles map[uint16]bool) int {
 	//no valid data
 	validCycle := 0
-	if self.TileNum == uint16(0) {
+	if self.TileNum == uint32(0) {
 		return validCycle
 	}
 	sz := len(self.ErrorRates)
@@ -479,11 +565,11 @@ func (self *ErrorInfo) BubbleCounter(excludeCycles map[uint16]bool) FlowcellErro
 	//init surface, swath, cycles
 	for _, lr := range ret.Lanes {
 		lr.Surfaces = make([][][]*TileErrorRate, dim.Surface)
-		for surface := uint16(0); surface < dim.Surface; surface++ {
+		for surface := uint32(0); surface < dim.Surface; surface++ {
 			lr.Surfaces[surface] = make([][]*TileErrorRate, dim.Swath)
-			for swath := uint16(0); swath < dim.Swath; swath++ {
+			for swath := uint32(0); swath < dim.Swath; swath++ {
 				lr.Surfaces[surface][swath] = make([]*TileErrorRate, dim.TilesInSwath)
-				for swathTiles := uint16(0); swathTiles < dim.TilesInSwath; swathTiles++ {
+				for swathTiles := uint32(0); swathTiles < dim.TilesInSwath; swathTiles++ {
 					er := new(TileErrorRate)
 					er.ErrorRates = make([]float32, dim.Cycle)
 					lr.Surfaces[surface][swath][swathTiles] = er
@@ -492,26 +578,44 @@ func (self *ErrorInfo) BubbleCounter(excludeCycles map[uint16]bool) FlowcellErro
 		}
 	}
 
-	//load
-	for _, m := range self.Metrics {
-		tileDim := GetTileDim(m.TileNum)
-		laneIndex := ret.LaneNumToIndex[m.LaneNum]
-		surfaceIndex := tileDim.Surface - 1
-		swathIndex := tileDim.Swath - 1
-		swathTileIndex := tileDim.TilesInSwath - 1
-		tile := ret.Lanes[laneIndex].Surfaces[surfaceIndex][swathIndex][swathTileIndex]
-		tile.TileNum = m.TileNum
-		tile.ErrorRates[m.Cycle-1] = m.ErrorRate
+	if self.Version < 4 {
+		for _, m := range self.Metrics {
+			tileDim := GetTileDim(uint32(m.TileNum))
+			laneIndex := ret.LaneNumToIndex[m.LaneNum]
+			surfaceIndex := tileDim.Surface - 1
+			swathIndex := tileDim.Swath - 1
+			swathTileIndex := tileDim.TilesInSwath - 1
+			tile := ret.Lanes[laneIndex].Surfaces[surfaceIndex][swathIndex][swathTileIndex]
+			tile.TileNum = uint32(m.TileNum)
+			tile.ErrorRates[m.Cycle-1] = m.ErrorRate
 
+		}
+	}
+	if self.Version == 4 {
+		for _, m := range self.Metrics4 {
+
+			if m.TileNum == 0 || m.LaneNum == 0 || m.Cycle == 0 {
+				continue
+			}
+			tileDim := GetTileDim(uint32(m.TileNum))
+			laneIndex := ret.LaneNumToIndex[m.LaneNum]
+			surfaceIndex := tileDim.Surface - 1
+			swathIndex := tileDim.Swath - 1
+			swathTileIndex := tileDim.TilesInSwath - 1
+			tile := ret.Lanes[laneIndex].Surfaces[surfaceIndex][swathIndex][swathTileIndex]
+			tile.TileNum = uint32(m.TileNum)
+			tile.ErrorRates[m.Cycle-1] = m.ErrorRate
+
+		}
 	}
 	//compute
 	for _, lr := range ret.Lanes {
 
-		for surface := uint16(0); surface < dim.Surface; surface++ {
+		for surface := uint32(0); surface < dim.Surface; surface++ {
 
-			for swath := uint16(0); swath < dim.Swath; swath++ {
+			for swath := uint32(0); swath < dim.Swath; swath++ {
 
-				for swathTiles := uint16(0); swathTiles < dim.TilesInSwath; swathTiles++ {
+				for swathTiles := uint32(0); swathTiles < dim.TilesInSwath; swathTiles++ {
 					tile := lr.Surfaces[surface][swath][swathTiles]
 					validCycles := tile.BubbleCount(excludeCycles)
 					ret.TotalValidCycles += validCycles
@@ -544,11 +648,11 @@ func (self *FlowcellErrorRate) GetBubbleSum(_dim *TileDimension) BubbleSum {
 	//TODO parsing dim
 	for _, lr := range self.Lanes {
 
-		for surface := uint16(0); surface < dim.Surface; surface++ {
+		for surface := uint32(0); surface < dim.Surface; surface++ {
 
-			for swath := uint16(0); swath < dim.Swath; swath++ {
+			for swath := uint32(0); swath < dim.Swath; swath++ {
 
-				for swathTiles := uint16(0); swathTiles < dim.TilesInSwath; swathTiles++ {
+				for swathTiles := uint32(0); swathTiles < dim.TilesInSwath; swathTiles++ {
 					tile := lr.Surfaces[surface][swath][swathTiles]
 					//remove small fraction of float hack, maybe not have
 					if tile.MeanErrorRate > float32(0) {

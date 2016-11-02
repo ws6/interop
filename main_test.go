@@ -152,7 +152,7 @@ func TestExtractionMetrics(t *testing.T) {
 }
 
 //C25.1/TileMetricsOut.bin
-func TestTileMetricsRTA3(t *testing.T) {
+func xTestTileMetricsRTA3(t *testing.T) {
 	filename := `\\ussd-prd-isi04\Voyager\161026_VP2-06_0068_AH5LWDMCVY\InterOp\C25.1\TileMetricsOut.bin`
 	em := TileInfo{Filename: filename}
 	err := em.ParseRTA3()
@@ -243,6 +243,55 @@ func xTestQMetrics_version6(t *testing.T) {
 	}
 	if em.Error() != "" {
 		t.Errorf(em.Error())
+	}
+}
+
+func TestErrorMetrics4(t *testing.T) {
+	//	filename := "./test_data/InterOp/ErrorMetricsOut.bin"
+	filename := `\\ussd-prd-isi04\Voyager\161026_VP2-06_0068_AH5LWDMCVY\InterOp\C25.1\ErrorMetricsOut.bin `
+	em := ErrorInfo{Filename: filename}
+	err := em.Parse()
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(em.Version, em.SSize)
+	t.Log(len(em.Metrics4))
+
+	dim := em.GetDimMax()
+	t.Logf("%+v\n", dim)
+	tileER := em.ErrorRateByTile(nil)
+	t.Logf("%+v\n", tileER)
+	for _, ln := range tileER.Lanes {
+		//		t.Logf("%+v\n", ln)
+		b, err := json.Marshal(ln)
+		if err != nil {
+			t.Error(err)
+		}
+		t.Logf("%s\n", string(b))
+	}
+
+	exMap := make(map[uint16]bool)
+	for i := uint16(150); i < uint16(301); i++ {
+		exMap[i] = true
+	}
+	bubbles := em.BubbleCounter(exMap)
+	t.Logf(" bubbles\n %+v\n", bubbles)
+	for _, ln := range bubbles.Lanes {
+		//		t.Logf("%+v\n", ln)
+		b, err := json.Marshal(ln)
+		if err != nil {
+			t.Error(err)
+		}
+		t.Logf("%s\n", string(b))
+	}
+	bubSum := bubbles.GetBubbleSum(nil)
+	t.Logf(" bubbles Sumamry\n %+v\n", bubSum)
+	return
+	for i, each := range em.Metrics {
+		if i >= 1000 {
+			break
+		}
+		t.Log(each.TileNum, each.LaneNum)
 	}
 }
 
