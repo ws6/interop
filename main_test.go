@@ -151,7 +151,24 @@ func TestExtractionMetrics(t *testing.T) {
 	}
 }
 
-func TestTileMetrics(t *testing.T) {
+//C25.1/TileMetricsOut.bin
+func TestTileMetricsRTA3(t *testing.T) {
+	filename := `\\ussd-prd-isi04\Voyager\161026_VP2-06_0068_AH5LWDMCVY\InterOp\C25.1\TileMetricsOut.bin`
+	em := TileInfo{Filename: filename}
+	err := em.ParseRTA3()
+	if err != nil {
+		t.Error(err)
+	}
+	for i, v := range em.Metrics3 {
+		if i >= 1000 {
+			break
+		}
+		t.Logf("%+v\n", v)
+	}
+	t.Log(len(em.Metrics3))
+}
+
+func xTestTileMetrics(t *testing.T) {
 	//	filename := "./test_data/InterOp/TileMetricsOut.bin"
 	//	filename := `\\ussd-prd-isi04\Voyager\150910_E360_0084_AHG75WCCXX\InterOp\TileMetricsOut.bin`
 	//	filename := `C:\Users\jliu1\GolangProjects\src\github.com\ws6\raptor\test_data\data\flowcells\150924_GAIIX-778_00444_FC66GDFAAXX\InterOp\TileMetricsOut.bin`
@@ -170,7 +187,7 @@ func TestTileMetrics(t *testing.T) {
 	t.Log(len(em.Metrics))
 }
 
-func TestQMetrics7(t *testing.T) {
+func xTestQMetrics7(t *testing.T) {
 	//	filename := "./test_data/InterOp/QMetricsOut.bin"
 	//	filename := `C:\Users\jliu1\GolangProjects\src\github.com\ws6\raptor\test_data\data\flowcells\150924_GAIIX-778_00444_FC66GDFAAXX\InterOp\QMetricsOut.bin`
 	//	filename := `\\ussd-prd-isi04\Voyager\160701_VP1-08_0164_A027BCABVY\InterOp\QMetricsOut.bin`
@@ -229,7 +246,7 @@ func xTestQMetrics_version6(t *testing.T) {
 	}
 }
 
-func TestErrorMetrics(t *testing.T) {
+func xTestErrorMetrics(t *testing.T) {
 	//	filename := "./test_data/InterOp/ErrorMetricsOut.bin"
 	filename := `\\ussd-prd-isi04\Voyager\Voychem\160212_E355_0238_A00WNCAAVY\InterOp\ErrorMetricsOut.bin`
 	em := ErrorInfo{Filename: filename}

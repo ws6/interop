@@ -7,6 +7,13 @@ import (
 	"sort"
 )
 
+var (
+	RTA3_PF          = 0
+	RTA3_RAW         = 1
+	RTA3_NUMREADS    = 2
+	RTA3_PCT_ALIGNED = 3
+)
+
 type ReadCode struct {
 	ReadNum,
 	Phasing, PrePhasing, PercentAligned uint16
@@ -88,8 +95,10 @@ type TileMetrics struct {
 type TileInfo struct {
 	Filename string
 	Version  uint8
+	AreaSize float32 // area of a tile in mm^2 (float)
 	SSize    uint8
 	Metrics  []*TileMetrics
+	Metrics3 []*TileMetrics3
 	err      error
 }
 
@@ -195,6 +204,36 @@ func (self *TileInfo) CodeAvgByLane(laneNum, Code uint16) float64 {
 		}
 		count++
 		sum += float64(cv.MetricValue)
+	}
+	if count == 0 {
+		return float64(0.0)
+	}
+	return sum / float64(count)
+}
+
+//code can be pf cluser, pf, raw, numberReads, pct aligned
+
+func (self *TileInfo) CodeAvgByLaneRTA3(laneNum uint16, code int) float64 {
+	sum := float64(0.0)
+	count := 0
+	for _, cv := range self.Metrics3 {
+		if cv.LaneNum != laneNum {
+			continue
+		}
+
+		count++
+		var f float64
+		switch code {
+		case RTA3_PF:
+			f = float64(cv.PFClusterCount)
+		case RTA3_RAW:
+			f = float64(cv.ClusterCount)
+		case RTA3_NUMREADS:
+			f = float64(cv.NumberRead)
+		case RTA3_PCT_ALIGNED:
+			f = float64(cv.PctAligned)
+		}
+		sum += f
 	}
 	if count == 0 {
 		return float64(0.0)
