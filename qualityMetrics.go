@@ -19,6 +19,10 @@ type LTC struct {
 	Cycle   uint16
 }
 
+type QMetrics7 struct {
+	LTC3
+	NumClusters [50]uint32 //first 50 clusters by cycle score Q1 through Q50 (uint32
+}
 type QMetrics struct {
 	LTC
 	NumClusters [50]uint32 //first 50 clusters by cycle score Q1 through Q50 (uint32
@@ -37,6 +41,7 @@ type QMetricsInfo struct {
 	NumQscores uint8 //number of quality score bins, B
 	QbinConfig QbinConfig
 	Metrics    []*QMetrics
+	Metrics7   []*QMetrics7
 	err        error
 }
 
@@ -48,6 +53,40 @@ func (self *QMetricsInfo) Error() string {
 		return self.err.Error()
 	}
 	return ""
+}
+
+type Q3 struct {
+	Lower uint8
+	Upper uint8
+	Remap uint8
+}
+
+func (self *QMetricsInfo) ParseQbinConfig7(buffer *bufio.Reader) error {
+	err := binary.Read(buffer, binary.LittleEndian, &self.NumQscores)
+	if err != nil {
+
+		return err
+	}
+	self.QbinConfig.LowerBound = make([]uint8, self.NumQscores)
+
+	self.QbinConfig.UpperBound = make([]uint8, self.NumQscores)
+
+	self.QbinConfig.ReMapScores = make([]uint8, self.NumQscores)
+
+	for i := 0; i < int(self.NumQscores); i++ {
+		q3 := Q3{}
+		err := binary.Read(buffer, binary.LittleEndian, &q3)
+		if err != nil {
+
+			return err
+		}
+		self.QbinConfig.LowerBound = append(self.QbinConfig.LowerBound, q3.Lower)
+		self.QbinConfig.UpperBound = append(self.QbinConfig.UpperBound, q3.Upper)
+		self.QbinConfig.ReMapScores = append(self.QbinConfig.ReMapScores, q3.Remap)
+
+	}
+
+	return nil
 }
 
 func (self *QMetricsInfo) ParseQbinConfig(buffer *bufio.Reader) error {
@@ -127,6 +166,61 @@ func (self *QMetricsInfo) ValidateQbinConfig() error {
 		return err
 	}
 	return nil
+}
+
+func (self *QMetricsInfo) ParseVersion7(buffer *bufio.Reader) error {
+	if self.err = self.ParseQbinConfig7(buffer); self.err != nil {
+		return self.err
+	}
+
+	if self.EnableQbin {
+		if self.err = self.ValidateQbinConfig(); self.err != nil {
+			fmt.Printf("%+v\n", self.Version)
+			fmt.Printf("%+v\n", self.QbinConfig)
+			return self.err
+		}
+	}
+
+	ok := true
+	n := uint32(0)
+	for {
+		if self.err != nil {
+			if self.err.Error() == "EOF" {
+				self.err = nil
+			}
+			break
+		}
+		m := new(QMetrics7)
+		if self.EnableQbin {
+			if self.err = binary.Read(buffer, binary.LittleEndian, &m.LTC3); self.err != nil {
+				continue
+			}
+			ok = true
+			for i := uint8(0); i < self.NumQscores; i++ {
+				n = 0
+				if self.err = binary.Read(buffer, binary.LittleEndian, &n); self.err != nil {
+					ok = false
+					break
+				}
+				m.NumClusters[self.QbinConfig.ReMapScores[i]] = n
+			}
+			if !ok {
+				continue
+			}
+
+		} else {
+			if self.err = binary.Read(buffer, binary.LittleEndian, m); self.err != nil {
+				continue
+			}
+		}
+
+		if self.err == nil {
+			self.Metrics7 = append(self.Metrics7, m)
+		}
+
+	}
+
+	return self.err
 }
 
 func (self *QMetricsInfo) ParseVersion6(buffer *bufio.Reader) error {
@@ -229,6 +323,17 @@ func (self *QMetricsInfo) Parse() error {
 		if enableQbined == 1 {
 			self.EnableQbin = true
 			return self.ParseVersion6(header.Buf)
+		}
+	}
+	if self.Version == 7 {
+		var enableQbined uint8
+		if self.err = binary.Read(header.Buf, binary.LittleEndian, &enableQbined); self.err != nil {
+			return self.err
+		}
+
+		if enableQbined == 1 {
+			self.EnableQbin = true
+			return self.ParseVersion7(header.Buf)
 		}
 	}
 	return self.ParseNonQbin(header.Buf)

@@ -170,16 +170,17 @@ func TestTileMetrics(t *testing.T) {
 	t.Log(len(em.Metrics))
 }
 
-func TestQMetrics(t *testing.T) {
+func TestQMetrics7(t *testing.T) {
 	//	filename := "./test_data/InterOp/QMetricsOut.bin"
 	//	filename := `C:\Users\jliu1\GolangProjects\src\github.com\ws6\raptor\test_data\data\flowcells\150924_GAIIX-778_00444_FC66GDFAAXX\InterOp\QMetricsOut.bin`
-	filename := `\\ussd-prd-isi04\Voyager\160701_VP1-08_0164_A027BCABVY\InterOp\QMetricsOut.bin`
+	//	filename := `\\ussd-prd-isi04\Voyager\160701_VP1-08_0164_A027BCABVY\InterOp\QMetricsOut.bin`
+	filename := `\\ussd-prd-isi04\Voyager\161026_VP2-06_0068_AH5LWDMCVY\InterOp\C25.1\QMetricsOut.bin`
 	em := QMetricsInfo{Filename: filename}
 	err := em.Parse()
 	if err != nil {
 		t.Error(err)
 	}
-	for i, v := range em.Metrics {
+	for i, v := range em.Metrics7 {
 		if i >= 100 {
 			break
 		}
