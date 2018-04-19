@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/binary"
 	"fmt"
+	"sync"
 
 	"os"
 )
@@ -185,4 +186,52 @@ func ParseGTCGenotypes(filename string) (*Genotypes, error) {
 	file.Seek(0, 0)
 	return gtcHeader.parseGenotypes(file)
 
+}
+
+func score(s1, s2 *Genotypes) float64 {
+	size := len(s1.Calls)
+	if size != len(s2.Calls) {
+		return 0
+	}
+	matched := 0
+	for i, _ := range s1.Calls {
+		if s1.Calls[i] == s2.Calls[i] {
+			matched++
+		}
+	}
+	return float64(float64(100*matched) / float64(size))
+
+}
+
+func Score(gtc1, gtc2 string) (float64, error) {
+	var wg sync.WaitGroup
+	wg.Add(2)
+	var s1, s2 *Genotypes
+	var err error
+	go func() {
+
+		defer wg.Done()
+		_s1, _err := ParseGTCGenotypes(gtc1)
+		if _err != nil {
+			err = _err
+			return
+		}
+		s1 = _s1
+	}()
+	go func() {
+
+		defer wg.Done()
+		_s2, _err := ParseGTCGenotypes(gtc2)
+		if _err != nil {
+			err = _err
+			return
+		}
+		s2 = _s2
+	}()
+	if err != nil {
+		return 0, err
+	}
+	wg.Wait()
+
+	return score(s1, s2), nil
 }
