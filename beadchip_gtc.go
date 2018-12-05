@@ -148,6 +148,8 @@ type BinCount struct {
 	LeftCount  int //if less than left bound
 	RightCount int //if greater than right bound
 	Count      []int
+	RawCount   []int
+	Stdev      []float64 //deviation curve
 	NumberBins int
 	Left       float32
 	Right      float32
