@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 )
 
 const HEADER_BPM = `BPM`
@@ -27,6 +28,7 @@ type BPMInfo struct {
 	LociNames        []string
 	NormalizationIds []uint8
 	LocusEntries     []*LocusEntry
+	LocusEntryMap    map[string]*LocusEntry
 }
 
 type BPMParseOptions struct {
@@ -36,7 +38,7 @@ type BPMParseOptions struct {
 }
 
 type LocusEntry struct {
-	Version   int32
+	Version   uint32
 	IlmnId    string
 	Name      string
 	SNP       string
@@ -46,8 +48,10 @@ type LocusEntry struct {
 	AddressA  int32
 	AddressB  int32
 
-	RefStrand    int
-	SourceStrand int
+	RefStrand          int
+	RefStrandString    string
+	SourceStrand       int
+	SourceStrandString string
 }
 
 func NewLocusEntry() *LocusEntry {
@@ -95,6 +99,119 @@ func readMSString(buffer *bufio.Reader) (string, error) {
 	return string(bret), nil
 }
 
+func readLocusEntry6(ret *LocusEntry, buffer *bufio.Reader) error {
+	var err error
+	ret.IlmnId, err = readMSString(buffer)
+	if err != nil {
+		return err
+	}
+
+	ilmnId := strings.Split(ret.IlmnId, "_")
+	if len(ilmnId) >= 2 {
+		ret.SourceStrandString = ilmnId[len(ilmnId)-2]
+	}
+
+	ret.Name, err = readMSString(buffer)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < 3; i++ {
+		if _, err = readMSString(buffer); err != nil {
+			return err
+		}
+	}
+	for i := 0; i < 4; i++ {
+		if _, err := buffer.ReadByte(); err != nil {
+			return err
+		}
+	}
+	for i := 0; i < 2; i++ {
+		if _, err = readMSString(buffer); err != nil {
+			return err
+		}
+	}
+	ret.SNP, err = readMSString(buffer)
+
+	if err != nil {
+		return err
+	}
+	ret.Chrom, err = readMSString(buffer)
+
+	if err != nil {
+		return err
+	}
+	for i := 0; i < 2; i++ {
+		if _, err = readMSString(buffer); err != nil {
+			return err
+		}
+	}
+	mapInfoStr, err := readMSString(buffer)
+
+	ret.MapInfo, err = strconv.Atoi(mapInfoStr)
+	if err != nil {
+		return fmt.Errorf(`mapInfoStr Atoi err:%s`, err.Error())
+	}
+
+	for i := 0; i < 2; i++ {
+		if _, err = readMSString(buffer); err != nil {
+			return err
+		}
+	}
+	if err := binary.Read(buffer, binary.LittleEndian, &ret.AddressA); err != nil {
+		return err
+	}
+	if err := binary.Read(buffer, binary.LittleEndian, &ret.AddressB); err != nil {
+		return err
+	}
+
+	for i := 0; i < 7; i++ {
+		if _, err = readMSString(buffer); err != nil {
+			return err
+		}
+	}
+	for i := 0; i < 3; i++ {
+		if _, err := buffer.ReadByte(); err != nil {
+			return err
+		}
+	}
+	bAssayType, err := buffer.ReadByte()
+	if err != nil {
+		return err
+	}
+	ret.AssayType = int(bAssayType)
+
+	return nil
+
+}
+
+func readLocusEntry7(ret *LocusEntry, buffer *bufio.Reader) error {
+	if err := readLocusEntry6(ret, buffer); err != nil {
+		return err
+	}
+
+	for i := 0; i < 16; i++ {
+		if _, err := buffer.ReadByte(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func readLocusEntry8(ret *LocusEntry, buffer *bufio.Reader) error {
+
+	if err := readLocusEntry7(ret, buffer); err != nil {
+		return err
+	}
+	var err error
+	ret.RefStrandString, err = readMSString(buffer)
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
+
 func readLocusEntry(buffer *bufio.Reader) (*LocusEntry, error) {
 	ret := NewLocusEntry()
 	if err := binary.Read(buffer, binary.LittleEndian, &ret.Version); err != nil {
@@ -104,88 +221,26 @@ func readLocusEntry(buffer *bufio.Reader) (*LocusEntry, error) {
 	if ret.Version < 6 || ret.Version > 8 {
 		return nil, fmt.Errorf(`  "Manifest format error: unknown version for locus entry [%d]`, ret.Version)
 	}
-	//base from version 6
-
-	//if version == 7
-
-	//ifvesion = 8
-	var err error
-	ret.IlmnId, err = readMSString(buffer)
-	if err != nil {
-		return nil, err
-	}
-
-	ret.Name, err = readMSString(buffer)
-	if err != nil {
-		return nil, err
-	}
-
-	for i := 0; i < 3; i++ {
-		if _, err = readMSString(buffer); err != nil {
+	if ret.Version == 6 {
+		if err := readLocusEntry6(ret, buffer); err != nil {
 			return nil, err
 		}
+
 	}
-	for i := 0; i < 4; i++ {
-		if _, err := buffer.ReadByte(); err != nil {
+	if ret.Version == 7 {
+		if err := readLocusEntry7(ret, buffer); err != nil {
 			return nil, err
 		}
+
 	}
-	for i := 0; i < 2; i++ {
-		if _, err = readMSString(buffer); err != nil {
+	if ret.Version == 8 {
+		if err := readLocusEntry8(ret, buffer); err != nil {
 			return nil, err
 		}
-	}
-	ret.SNP, err = readMSString(buffer)
 
-	if err != nil {
-		return nil, err
 	}
-	ret.Chrom, err = readMSString(buffer)
-
-	if err != nil {
-		return nil, err
-	}
-	for i := 0; i < 2; i++ {
-		if _, err = readMSString(buffer); err != nil {
-			return nil, err
-		}
-	}
-	mapInfoStr, err := readMSString(buffer)
-
-	ret.MapInfo, err = strconv.Atoi(mapInfoStr)
-	if err != nil {
-		return nil, fmt.Errorf(`mapInfoStr Atoi err:%s`, err.Error())
-	}
-
-	for i := 0; i < 2; i++ {
-		if _, err = readMSString(buffer); err != nil {
-			return nil, err
-		}
-	}
-	if err := binary.Read(buffer, binary.LittleEndian, &ret.AddressA); err != nil {
-		return nil, err
-	}
-	if err := binary.Read(buffer, binary.LittleEndian, &ret.AddressB); err != nil {
-		return nil, err
-	}
-
-	for i := 0; i < 7; i++ {
-		if _, err = readMSString(buffer); err != nil {
-			return nil, err
-		}
-	}
-	for i := 0; i < 3; i++ {
-		if _, err := buffer.ReadByte(); err != nil {
-			return nil, err
-		}
-	}
-	bAssayType, err := buffer.ReadByte()
-	if err != nil {
-		return nil, err
-	}
-	ret.AssayType = int(bAssayType)
-
 	return ret, nil
+
 }
 
 func ParseBMP(file io.ReadSeeker, opts *BPMParseOptions) (*BPMInfo, error) {
@@ -282,5 +337,30 @@ func ParseBMP(file io.ReadSeeker, opts *BPMParseOptions) (*BPMInfo, error) {
 		return ret, nil
 	}
 
+	for i := 0; i < int(ret.NumerOfLoci); i++ {
+		//readLocusEntry
+		entry, err := readLocusEntry(buffer)
+		if err != nil {
+			return nil, err
+		}
+
+		ret.LocusEntries = append(ret.LocusEntries, entry)
+	}
+	ret.LocusEntryMap = make(map[string]*LocusEntry)
+	for _, le := range ret.LocusEntries {
+		ret.LocusEntryMap[le.Name] = le
+	}
+	//!!!sanity check
+	for _, name := range ret.LociNames {
+		if _, ok := ret.LocusEntryMap[name]; !ok {
+			return nil, fmt.Errorf(`Assay [%s] doesn't have entry info`, name)
+		}
+	}
 	return ret, nil
+}
+
+func ParseBMPNames(file io.ReadSeeker) (*BPMInfo, error) {
+	opts := new(BPMParseOptions)
+	opts.OnlyLociName = true
+	return ParseBMP(file, opts)
 }
