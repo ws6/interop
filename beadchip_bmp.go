@@ -15,9 +15,9 @@ const (
 	REFSTRAND_PLUS    = 1
 	REFSTRAND_MINUS   = 2
 
-	SOURCESTRAND_UNKNOWN              = 0
-	SOURCESTRAND_SOURCESTRAND_FORWARD = 1
-	SOURCESTRAND_REVERSE              = 2
+	SOURCESTRAND_UNKNOWN = 0
+	SOURCESTRAND_FORWARD = 1
+	SOURCESTRAND_REVERSE = 2
 )
 
 type BPMInfo struct {
@@ -109,6 +109,18 @@ func readLocusEntry6(ret *LocusEntry, buffer *bufio.Reader) error {
 	ilmnId := strings.Split(ret.IlmnId, "_")
 	if len(ilmnId) >= 2 {
 		ret.SourceStrandString = ilmnId[len(ilmnId)-2]
+		switch ret.SourceStrandString {
+		case "U":
+			ret.SourceStrand = SOURCESTRAND_UNKNOWN
+		case "":
+			ret.SourceStrand = SOURCESTRAND_UNKNOWN
+		case "F":
+			ret.SourceStrand = SOURCESTRAND_FORWARD
+		case "R":
+			ret.SourceStrand = SOURCESTRAND_REVERSE
+		default:
+			return fmt.Errorf("Unexpected value for source strand [%s]" + ret.SourceStrandString)
+		}
 	}
 
 	ret.Name, err = readMSString(buffer)
@@ -207,6 +219,18 @@ func readLocusEntry8(ret *LocusEntry, buffer *bufio.Reader) error {
 	ret.RefStrandString, err = readMSString(buffer)
 	if err != nil {
 		return err
+	}
+	switch ret.RefStrandString {
+	case "U":
+		ret.RefStrand = REFSTRAND_UNKNOWN
+	case "":
+		ret.RefStrand = REFSTRAND_UNKNOWN
+	case "+":
+		ret.RefStrand = REFSTRAND_PLUS
+	case "-":
+		ret.RefStrand = REFSTRAND_MINUS
+	default:
+		return fmt.Errorf("Unexpected value for reference strand [%s] ", ret.RefStrandString)
 	}
 	return nil
 

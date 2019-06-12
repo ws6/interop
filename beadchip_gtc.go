@@ -240,6 +240,11 @@ func (self *GTCHeader) ParseLogRRatio() (*Float32_T, error) {
 	return self.parseFloat32_T(self.File, ID_LOGR_RATIOS)
 }
 
+func (self *GTCHeader) ParseGenotypeScores() (*Float32_T, error) {
+
+	return self.parseFloat32_T(self.File, ID_GENOTYPE_SCORES)
+}
+
 func (self *GTCHeader) parseGenotypes(file io.ReadSeeker) (*Genotypes, error) {
 	ret := new(Genotypes)
 
