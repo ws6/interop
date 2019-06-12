@@ -139,6 +139,11 @@ type Genotypes struct {
 	Calls  []byte
 }
 
+type BaseCalls struct {
+	Length int32
+	Calls  []string
+}
+
 type Float32_T struct {
 	Length int32
 	Array  []float32
@@ -538,5 +543,44 @@ func (self *GTCHeader) GetGTCInfo() (*GTCInfo, error) {
 	ret.CallRate, _ = self.readFloat32(file, ID_CALL_RATE)
 	ret.LogRDev, _ = self.readFloat32(file, ID_LOGR_DEV)
 	ret.EstimatedGender, _ = self.readChar(file, ID_GENDER)
+	return ret, nil
+}
+
+func (self *GTCHeader) ParseBaseCalls() (*BaseCalls, error) {
+
+	return self.parseBaseCalls(self.File)
+}
+
+func (self *GTCHeader) parseBaseCalls(file io.ReadSeeker) (*BaseCalls, error) {
+	gtcHeader, err := self.GetGTCInfo()
+	if err != nil {
+		return nil, err
+	}
+	if gtcHeader.ploidyType != 1 {
+		return nil, fmt.Errorf(`not Diploid is not implemented`)
+	}
+	ret := new(BaseCalls)
+
+	offset, err := self.getOffset(ID_BASE_CALLS)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := file.Seek(offset, 0); err != nil {
+		return nil, err
+	}
+	buffer := bufio.NewReader(file)
+
+	if err := binary.Read(buffer, binary.LittleEndian, &ret.Length); err != nil {
+		return nil, err
+	}
+
+	for i := 0; i < int(ret.Length); i++ {
+		var b [2]byte
+		if err := binary.Read(buffer, binary.LittleEndian, &b); err != nil {
+			return nil, err
+		}
+
+		ret.Calls = append(ret.Calls, string(b[0])+string(b[1]))
+	}
 	return ret, nil
 }

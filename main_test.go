@@ -15,20 +15,6 @@ func _TestGTCScore(t *testing.T) {
 	t.Logf(`matched score %f`, m)
 }
 
-func _TestGTCParser(t *testing.T) {
-	filename := `\\ussd-prd-isi05\fts_genotyping\call_file\20180418\202428760007_R12C02.gtc`
-	h, err := ParserGTCHeader(filename)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	gt, err := h.ParseGenotypes()
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	t.Logf("genotypes %+v", gt.Length)
-}
-
 //ParseGTCGenotypes
 func _TestParseGenotyps(t *testing.T) {
 	filename := `\\ussd-prd-isi05\fts_genotyping\call_file\20180418\202428760007_R12C02.gtc`
