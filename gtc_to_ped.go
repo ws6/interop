@@ -104,3 +104,8 @@ func ParsePED(pedStr string) (*PED, error) {
 	}
 	return ret, nil
 }
+
+func ParsePEDBaseCall(pedStr string) (*BaseCalls, error) {
+	ret := new(BaseCalls)
+	return ret, nil
+}

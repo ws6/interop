@@ -529,7 +529,7 @@ func (self *GTCHeader) GetGTCInfo() (*GTCInfo, error) {
 	ret.NumSNPs, _ = self.readInt32(ID_NUM_SNPS)
 	ret.ploidyType, err = self.readInt32(ID_PLOIDY_TYPE)
 	if err == nil {
-		if ret.ploidyType == 1 {
+		if ret.ploidyType == 1 || ret.ploidyType == 0 {
 			ret.PloidyType = `Diploid`
 		}
 		if ret.ploidyType == 2 {
@@ -556,8 +556,8 @@ func (self *GTCHeader) parseBaseCalls(file io.ReadSeeker) (*BaseCalls, error) {
 	if err != nil {
 		return nil, err
 	}
-	if gtcHeader.ploidyType != 1 {
-		return nil, fmt.Errorf(`not Diploid is not implemented`)
+	if gtcHeader.ploidyType != 1 && gtcHeader.ploidyType != 0 {
+		return nil, fmt.Errorf(`Diploid[%d] is not implemented`, gtcHeader.ploidyType)
 	}
 	ret := new(BaseCalls)
 
