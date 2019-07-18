@@ -109,3 +109,59 @@ func ParsePEDBaseCall(pedStr string) (*BaseCalls, error) {
 	ret := new(BaseCalls)
 	return ret, nil
 }
+
+func (self *PED) Callrate() float64 {
+	sz := len(self.BaseCalls)
+	if sz == 0 {
+		return 0.
+	}
+	numNoCall := 0
+	for _, bc := range self.BaseCalls {
+		if bc.Allele1 == "0" || bc.Allele2 == "0" {
+			numNoCall++
+			continue
+		}
+		if bc.Allele1 == "-" || bc.Allele2 == "-" {
+			numNoCall++
+			continue
+		}
+	}
+
+	return 1. - float64(numNoCall)/float64(sz)
+
+}
+
+func validCharset(s string) bool {
+	switch s {
+	case "A":
+		return true
+	case "G":
+		return true
+	case "C":
+		return true
+	case "T":
+		return true
+	case "I":
+		return true
+	case "D":
+		return true
+	case "0":
+		return true
+	}
+
+	return false
+
+}
+
+func (self *PED) ValidCharset() bool {
+	for _, bc := range self.BaseCalls {
+		if !validCharset(bc.Allele1) {
+			return false
+		}
+		if !validCharset(bc.Allele2) {
+			return false
+		}
+	}
+
+	return true
+}
