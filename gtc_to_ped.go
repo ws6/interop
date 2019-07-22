@@ -3,8 +3,8 @@ package interop
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
-
 	"strings"
 )
 
@@ -68,6 +68,16 @@ type PED struct {
 	Affection  string
 	BaseCalls  []*PEDBaseCall
 	NumLoci    int
+}
+
+//shortcut from file
+func ParsePEDFromFile(pedFileName string) (*PED, error) {
+	pedBytes, err := ioutil.ReadFile(pedFileName)
+	if err != nil {
+		return nil, err
+	}
+
+	return ParsePED(string(pedBytes))
 }
 
 func ParsePED(pedStr string) (*PED, error) {
