@@ -2,6 +2,8 @@ package interop
 
 import (
 	"fmt"
+	"io"
+	"os"
 
 	"strings"
 )
@@ -164,4 +166,41 @@ func (self *PED) ValidCharset() bool {
 	}
 
 	return true
+}
+
+func (self *PED) Print(f io.Writer) error {
+	ret := []string{
+		self.FamilyId,
+		self.SampleName,
+		self.PaternalId,
+		self.MaternalId,
+		self.Sex,
+		self.Affection,
+	}
+	_, err := f.Write([]byte(strings.Join(ret, " ")))
+	if err != nil {
+		return fmt.Errorf(`writting header error:%s`, err.Error())
+	}
+	for _, s := range self.BaseCalls {
+		if _, err := f.Write([]byte(" " + s.Allele1)); err != nil {
+			return err
+		}
+		if _, err := f.Write([]byte(" " + s.Allele2)); err != nil {
+			return err
+		}
+	}
+	//put a newline at the end for consistency
+	if _, err := f.Write([]byte("\n")); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (self *PED) PrintToFile(filename string) error {
+	f, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return self.Print(f)
 }
