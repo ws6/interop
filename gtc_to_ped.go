@@ -204,3 +204,20 @@ func (self *PED) PrintToFile(filename string) error {
 	defer f.Close()
 	return self.Print(f)
 }
+
+func (self *PED) SameBaseCalls(p *PED) bool {
+	if len(self.BaseCalls) != len(p.BaseCalls) {
+		return false
+	}
+
+	for i, b := range self.BaseCalls {
+		if b.Allele1 != p.BaseCalls[i].Allele1 {
+			return false
+		}
+		if b.Allele2 != p.BaseCalls[i].Allele2 {
+			return false
+		}
+	}
+
+	return true
+}

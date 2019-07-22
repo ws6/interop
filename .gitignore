@@ -32,3 +32,4 @@ sample_test.go
 migration.log
 .bmp
 .ped
+*.ped
