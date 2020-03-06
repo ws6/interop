@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+var ERR_EMPTY = fmt.Errorf(`Sample Sheet is empty`)
 var ERR_MISSING_HEADER = fmt.Errorf(`missing required header`)
 var ERR_STOP = fmt.Errorf(`stop on cell value is empty`)
 
@@ -18,15 +19,35 @@ type Reader struct {
 
 type SectionWriter func(*Section) *Section
 
+func trimOrPad(in []string, n int, placeholder string) []string {
+	ret := []string{}
+	for i := 0; i < n; i++ {
+		if i >= len(in) {
+			ret = append(ret, placeholder)
+			continue
+		}
+
+		ret = append(ret, in[i])
+	}
+	return ret
+}
+
 type Section struct {
 	Name   string
 	Rows   [][]string
-	Writer SectionWriter
+	Writer SectionWriter `json:"-"`
+}
+
+func (self *Section) TrimOrPad(n int, placeholder string) {
+	for i, row := range self.Rows {
+		self.Rows[i] = trimOrPad(row, n, placeholder)
+	}
 }
 
 type Cell struct {
-	*ColumnDef
-	Value string
+	*ColumnDef `json:"-"`
+	Name       string
+	Value      string
 }
 
 type Row struct {
@@ -48,25 +69,28 @@ func (self *Row) GetCell(h *ColumnDef) *Cell {
 type SampleSheet struct {
 	Sections []*Section
 	Data     []*Row
+
+	*Reader `json:"-"`
 }
 
 type Validator func(*Row, *Cell) error
 type WriterFn func(*Row, *Cell) *Cell
 type ColumnDef struct {
+	Name                     string   //consolidated name
 	Position                 int      //1-offset to avoid default initialization
 	Accepts                  []string //any strings can accept
 	StopWhenEmtpy            bool
-	ErrorOnMissingFromHeader bool   //return error when can not find such header
-	Name                     string //consolidated name
+	ErrorOnMissingFromHeader bool //return error when can not find such header
+
 	//TODO add validator func and writer func
-	Validators []Validator
-	Writer     WriterFn
+	Validators []Validator `json:"-"`
+	Writer     WriterFn    `json:"-"`
 }
 
 func NewReader(columns []*ColumnDef) *Reader {
 	ret := new(Reader)
-	ret.ColumnDefs = columns
-	for _, c := range ret.ColumnDefs {
+
+	for _, c := range columns {
 		ret.AddColumnDef(c)
 	}
 
@@ -109,14 +133,22 @@ func (self *Reader) ParseRow(ln []string) (*Row, error) {
 	ret := new(Row)
 	sz := len(ln)
 	for _, h := range self.ColumnDefs {
+		topush := new(Cell)
+		topush.Name = h.Name
+		topush.ColumnDef = h
+		ret.Cells = append(ret.Cells, topush)
+
 		if (h.Position - 1) < 0 {
-			return nil, fmt.Errorf(`position is too low %d`, h.Position)
+			if h.Writer == nil {
+
+				return nil, fmt.Errorf(`position is too low`)
+			}
+			continue
 		}
 		if h.Position > sz {
-			return nil, fmt.Errorf(`Row is too small`)
+			return nil, fmt.Errorf(`position is too high`)
 		}
-		topush := new(Cell)
-		topush.ColumnDef = h
+
 		value := ln[h.Position-1]
 		value = strings.TrimSpace(value)
 		if len(value) == 0 {
@@ -126,13 +158,12 @@ func (self *Reader) ParseRow(ln []string) (*Row, error) {
 		}
 		topush.Value = value
 
-		ret.Cells = append(ret.Cells, topush)
 	}
 
 	for _, cell := range ret.Cells {
 		for _, val := range cell.Validators {
 			if err := val(ret, cell); err != nil {
-				return nil, err
+				return nil, fmt.Errorf(`Validator err on cell[%+v]: %s`, cell, err.Error())
 			}
 		}
 	}
@@ -289,7 +320,7 @@ func (self *Reader) Read(sampleSheetBody string) (*SampleSheet, error) {
 
 	if len(trimedSplit) == 0 {
 
-		return nil, fmt.Errorf(ERR_EMPTY)
+		return nil, ERR_EMPTY
 	}
 	sectionNames := SearchSectionNames(trimedSplit)
 	if len(sectionNames) == 0 {
@@ -304,6 +335,33 @@ func (self *Reader) Read(sampleSheetBody string) (*SampleSheet, error) {
 	if err := self.ReadDataSection(ret, trimedSplit); err != nil {
 		return nil, err
 	}
+	ret.Reader = self
 	return ret, nil
 
+}
+
+func trimSamplSheetLine(s string) (bool, string) {
+	r := strings.TrimRight(s, "\r ")
+	//skip empty
+	if len(r) == 0 {
+		return false, r
+	}
+	//skip # comments
+	if strings.HasPrefix(r, "#") {
+		return false, r
+	}
+	r = strings.Trim(r, " ")
+	//skip trimmed empty
+	if len(r) == 0 {
+		return false, r
+	}
+	return true, r
+}
+
+func (self *SampleSheet) PadSections() *SampleSheet {
+	numOfDataFields := len(self.Reader.ColumnDefs)
+	for _, sec := range self.Sections {
+		sec.TrimOrPad(numOfDataFields, "")
+	}
+	return self
 }
