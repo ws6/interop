@@ -42,8 +42,8 @@ func (self *TST170V1) MakeWriter(ss *samplesheetio.SampleSheet) *samplesheetio.S
 }
 
 func (self *TST170V1) MakeReader() *samplesheetio.Reader {
-	ret := new(samplesheetio.Reader)
-	samplesheetio.NewReader(
+
+	return samplesheetio.NewReader(
 
 		[]*samplesheetio.ColumnDef{
 			{
@@ -93,7 +93,7 @@ func (self *TST170V1) MakeReader() *samplesheetio.Reader {
 			},
 		},
 	)
-	return ret
+
 }
 
 func (self *TST170V1) Read(body string) error {

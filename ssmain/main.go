@@ -20,6 +20,11 @@ func main() {
 }
 
 func TestSampleSheets() {
+	io := samplesheets.GetIO(samplesheets.TST170, samplesheets.VERSION_TST170_1)
+	if io == nil {
+		fmt.Println(`can not find reader io`)
+		return
+	}
 	dir := `../test_data/samplesheets`
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
@@ -41,13 +46,9 @@ func TestSampleSheets() {
 			break
 		}
 	}
-	io := samplesheets.GetIO(samplesheets.TST170, samplesheets.VERSION_TST170_1)
-	if io == nil {
-		fmt.Println(`can not find reader io`)
-		return
-	}
 
 	for _, ss_file := range ss_files {
+		log.Println(`parsing`, ss_file)
 		ssByte, err := ioutil.ReadFile(ss_file)
 		if err != nil {
 			log.Fatal(err.Error())
@@ -56,7 +57,11 @@ func TestSampleSheets() {
 		if err != nil {
 			log.Fatal(err.Error())
 		}
-		log.Println(samplesheets.Write(io, ss).String())
+		log.Printf(`%+v`, ss)
+
+		ssString := samplesheets.Write(io, ss).PadSections().String()
+		log.Println(ssString)
+		ioutil.WriteFile(filepath.Base(ss_file), []byte(ssString), 0644)
 	}
 }
 
