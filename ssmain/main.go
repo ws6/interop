@@ -15,17 +15,19 @@ import (
 )
 
 func main() {
-
-	TestSampleSheets()
+	dir := `../test_data/samplesheets/tso500v2`
+	name := samplesheets.TSO500
+	version := samplesheets.VERSION_TSO500_2
+	TestSampleSheets(dir, name, version)
 }
 
-func TestSampleSheets() {
-	io := samplesheets.GetIO(samplesheets.TST170, samplesheets.VERSION_TST170_1)
+func TestSampleSheets(dir, name, version string) {
+	io := samplesheets.GetIO(name, version)
 	if io == nil {
 		fmt.Println(`can not find reader io`)
 		return
 	}
-	dir := `../test_data/samplesheets`
+	// dir := `../test_data/samplesheets`
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		log.Fatal(err.Error())

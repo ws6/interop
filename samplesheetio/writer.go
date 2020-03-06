@@ -92,3 +92,41 @@ func (ss *SampleSheet) String() string {
 func (ss *SampleSheet) WinString() string {
 	return ss._string("\r\n")
 }
+
+func (self *Section) UpdateOrAppend(row []string) {
+	if len(row) == 0 {
+		return
+	}
+
+	if row[0] == "" {
+		self.Rows = append(self.Rows, row)
+		return
+	}
+	k := row[0]
+
+	for i, _row := range self.Rows {
+		if len(_row) == 0 {
+			continue
+		}
+		if _row[0] == k {
+			self.Rows[i] = row
+			return
+		}
+
+		if i == len(self.Rows) {
+			self.Rows[i] = row
+			self.Rows = append(self.Rows, _row)
+			return
+		}
+	}
+
+}
+
+func (ss *SampleSheet) GetSection(sectionName string) *Section {
+	for _, sec := range ss.Sections {
+		if sec.Name == sectionName {
+			return sec
+		}
+	}
+	return nil
+}

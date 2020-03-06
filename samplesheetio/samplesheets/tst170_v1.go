@@ -29,7 +29,7 @@ func updateTstManifestSection(sec *samplesheetio.Section) *samplesheetio.Section
 	ret := new(samplesheetio.Section)
 	ret.Rows = [][]string{
 		[]string{`PoolDNA`, `Release2HDNA_manifest_160428.txt`},
-		[]string{`PoolDNA`, `Release2HRNA_manifest_160428.txt`},
+		[]string{`PoolRNA`, `Release2HRNA_manifest_160428.txt`},
 		[]string{``},
 	}
 

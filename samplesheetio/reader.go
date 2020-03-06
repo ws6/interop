@@ -139,10 +139,10 @@ func (self *Reader) ParseRow(ln []string) (*Row, error) {
 		ret.Cells = append(ret.Cells, topush)
 
 		if (h.Position - 1) < 0 {
-			if h.Writer == nil {
+			// if h.Writer == nil {
 
-				return nil, fmt.Errorf(`position is too low`)
-			}
+			// 	return nil, fmt.Errorf(`position is too low`)
+			// }
 			continue
 		}
 		if h.Position > sz {
