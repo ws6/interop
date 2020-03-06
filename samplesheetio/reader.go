@@ -12,13 +12,16 @@ var ERR_MISSING_HEADER = fmt.Errorf(`missing required header`)
 var ERR_STOP = fmt.Errorf(`stop on cell value is empty`)
 
 type Reader struct {
-	SectionNames []string
-	ColumnDefs   []*ColumnDef
+	// SectionNames []string
+	ColumnDefs []*ColumnDef
 }
 
+type SectionWriter func(*Section) *Section
+
 type Section struct {
-	Name string
-	Rows [][]string
+	Name   string
+	Rows   [][]string
+	Writer SectionWriter
 }
 
 type Cell struct {
@@ -47,12 +50,17 @@ type SampleSheet struct {
 	Data     []*Row
 }
 
+type Validator func(*Row, *Cell) error
+type WriterFn func(*Row, *Cell) *Cell
 type ColumnDef struct {
 	Position                 int      //1-offset to avoid default initialization
 	Accepts                  []string //any strings can accept
 	StopWhenEmtpy            bool
 	ErrorOnMissingFromHeader bool   //return error when can not find such header
 	Name                     string //consolidated name
+	//TODO add validator func and writer func
+	Validators []Validator
+	Writer     WriterFn
 }
 
 func NewReader(columns []*ColumnDef) *Reader {
@@ -119,6 +127,14 @@ func (self *Reader) ParseRow(ln []string) (*Row, error) {
 		topush.Value = value
 
 		ret.Cells = append(ret.Cells, topush)
+	}
+
+	for _, cell := range ret.Cells {
+		for _, val := range cell.Validators {
+			if err := val(ret, cell); err != nil {
+				return nil, err
+			}
+		}
 	}
 	return ret, nil
 }
