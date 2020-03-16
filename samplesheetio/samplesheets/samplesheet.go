@@ -33,14 +33,18 @@ var Register, GetIO = func() (
 			lock.Unlock()
 		},
 		func(name, version string) SampleSheetIO {
+			var found SampleSheetIO
 			lock.Lock()
-			if v, ok := cache[name]; ok {
+			v, ok := cache[name]
+			if ok {
 				if ret, ok2 := v[version]; ok2 {
-					return ret
+					found = ret
 				}
 			}
 			lock.Unlock()
-			return nil
+
+			return found
+
 		}
 }()
 
