@@ -54,6 +54,19 @@ type Row struct {
 	Cells []*Cell
 }
 
+func (self *Row) GetCellByName(n string) *Cell {
+	h := &Cell{
+		Name: n,
+	}
+	for _, c := range self.Cells {
+
+		if c.ColumnDef.Name == h.Name {
+			return c
+		}
+	}
+	return nil
+}
+
 func (self *Row) GetCell(h *ColumnDef) *Cell {
 	for _, c := range self.Cells {
 		if c.ColumnDef == h {
@@ -121,7 +134,7 @@ func (self *Reader) ParseDataHeader(ln []string) error {
 	for _, h := range self.ColumnDefs {
 		pos := setPosition(h, ln)
 		if pos < 0 && h.ErrorOnMissingFromHeader {
-			return ERR_MISSING_HEADER
+			return fmt.Errorf(`Missing [Data] header [%s]: it can use any of [%s]`, h.Name, strings.Join(h.Accepts, ", "))
 		}
 		h.Position = pos
 	}
